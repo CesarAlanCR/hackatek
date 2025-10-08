@@ -3,11 +3,34 @@
 // Chat IA especializado en agricultura
 // Archivo: vistas/ia/chat.php
 
-// Configuración: leer API Key OpenAI desde variable de entorno
+// Configuración: intentar cargar .env simple desde la raíz del proyecto (si existe)
+$envPath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . '.env';
+if (file_exists($envPath)) {
+	$lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+	foreach ($lines as $line) {
+		// eliminar BOM si existe
+		$line = preg_replace("/^\xEF\xBB\xBF/", '', $line);
+		$line = trim($line);
+		if ($line === '' || $line[0] === '#') continue;
+		if (strpos($line, '=') === false) continue;
+		list($k, $v) = explode('=', $line, 2);
+		$k = trim($k);
+		$v = trim($v);
+		// quitar comillas si las hay
+		if (strlen($v) >= 2 && (($v[0] === '"' && substr($v, -1) === '"') || ($v[0] === "'" && substr($v, -1) === "'"))) {
+			$v = substr($v, 1, -1);
+		}
+		if (getenv($k) === false) {
+			putenv("$k=$v");
+			$_ENV[$k] = $v;
+		}
+	}
+}
+
+// Leer API Key OpenAI desde variable de entorno
 $OPENAI_API_KEY = getenv('OPENAI_API_KEY') ?: getenv('OPENAI_APIKEY') ?: null;
 
-// Nota: para desarrollo local puedes crear un archivo .env y usar un cargador de variables
-// (por ejemplo vlucas/phpdotenv) o configurar la variable en tu entorno del servidor.
+// Nota: para desarrollo local también puedes usar vlucas/phpdotenv si prefieres.
 
 // Endpoint para procesar mensajes (POST)
 
@@ -41,8 +64,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	];
 
 	if (!$OPENAI_API_KEY) {
-		header('Content-Type: application/json');
-		echo json_encode(["reply" => "Error: OPENAI_API_KEY no configurada en el entorno."]); exit;
+			// Diagnóstico: ver si existe .env y si contiene la clave
+			$diag = [];
+			if (file_exists($envPath)) {
+				$diag[] = ".env encontrado en: $envPath";
+				// comprobar si la línea existe en el archivo
+				$envContents = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+				$found = false; $empty = false;
+				foreach ($envContents as $l) {
+					$l = preg_replace("/^\xEF\xBB\xBF/", '', $l);
+					$l = trim($l);
+					if (stripos($l, 'OPENAI_API_KEY=') === 0) {
+						$found = true;
+						$val = substr($l, strlen('OPENAI_API_KEY='));
+						if (trim($val) === '') $empty = true;
+						break;
+					}
+				}
+				if ($found) {
+					$diag[] = 'OPENAI_API_KEY presente en .env' . ($empty ? ' (vacía)' : ' (no vacía)');
+				} else {
+					$diag[] = 'OPENAI_API_KEY no encontrada en .env';
+				}
+			} else {
+				$diag[] = ".env no encontrado en: $envPath";
+			}
+			header('Content-Type: application/json');
+			echo json_encode(["reply" => "Error: OPENAI_API_KEY no configurada en el entorno.", "diag" => $diag]); exit;
 	}
 
 	$ch = curl_init('https://api.openai.com/v1/chat/completions');
