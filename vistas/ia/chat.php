@@ -42,9 +42,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$imageData = base64_encode(file_get_contents($_FILES['image']['tmp_name']));
 	}
 
+	// --- RAG: buscar contexto relevante en knowledge.sqlite ---
+	$rag_context = '';
+	$query_script = dirname(__DIR__, 2) . '/recursos/docs/query_rag.py';
+	if (file_exists($query_script)) {
+		$cmd = escapeshellcmd("python " . escapeshellarg($query_script) . " " . escapeshellarg($message));
+		$rag_output = shell_exec($cmd);
+		if ($rag_output) {
+			// Extraer los fragmentos del output
+			$chunks = [];
+			foreach (explode("---", $rag_output) as $frag) {
+				$frag = trim($frag);
+				if ($frag && strlen($frag) > 30) $chunks[] = $frag;
+			}
+			if ($chunks) {
+				$rag_context = "Contexto relevante:\n" . implode("\n\n", $chunks);
+			}
+		}
+	}
+
 	// Construir payload para OpenAI (gpt-4o, soporta imágenes)
+	$system_prompt = "Eres un asistente experto en agricultura. Responde solo sobre temas agrícolas, cultivos, plagas, clima, suelos, fertilización, imágenes de hojas y enfermedades. Si recibes una imagen, analiza y describe el estado agrícola de la planta.";
+	if ($rag_context) {
+		$system_prompt .= "\n\n" . $rag_context;
+	}
 	$messages = [
-		["role" => "system", "content" => "Eres un asistente experto en agricultura. Responde solo sobre temas agrícolas, cultivos, plagas, clima, suelos, fertilización, imágenes de hojas y enfermedades. Si recibes una imagen, analiza y describe el estado agrícola de la planta."]
+		["role" => "system", "content" => $system_prompt]
 	];
 	if ($imageData) {
 		$messages[] = [
@@ -113,7 +136,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$response = 'Error: No se pudo obtener respuesta de la IA. Código HTTP: ' . $httpcode;
 	}
 	header('Content-Type: application/json');
-	echo json_encode(["reply" => $response]);
+	echo json_encode([
+		"reply" => $response,
+		"context" => $rag_context ?: null
+	]);
 	exit;
 }
 ?>
