@@ -42,7 +42,7 @@
 						<li>Humedad: <span id="humidity-value">--</span></li>
 						<li>Última imagen: <span id="satellite-updated">--</span></li>
 					</ul>
-					<button class="btn btn-primary">Ver detalle</button>
+					<button id="btn-ver-detalle-clima" class="btn btn-primary">Ver detalle</button>
 				</div>
 			</div>
 		</section>
@@ -103,7 +103,7 @@
 	</footer>
 
 	<!-- Modal simple -->
-	<div id="module-modal" class="modal" role="dialog" aria-hidden="true" aria-labelledby="modal-title">
+	<div id="module-modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modal-title">
 		<div class="modal-content">
 			<button class="modal-close" aria-label="Cerrar">×</button>
 			<h3 id="modal-title"></h3>
