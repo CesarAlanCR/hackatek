@@ -3,8 +3,11 @@
 // Chat IA especializado en agricultura
 // Archivo: vistas/ia/chat.php
 
-// Configuración: API Key OpenAI
-$OPENAI_API_KEY = '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';
+// Configuración: leer API Key OpenAI desde variable de entorno
+$OPENAI_API_KEY = getenv('OPENAI_API_KEY') ?: getenv('OPENAI_APIKEY') ?: null;
+
+// Nota: para desarrollo local puedes crear un archivo .env y usar un cargador de variables
+// (por ejemplo vlucas/phpdotenv) o configurar la variable en tu entorno del servidor.
 
 // Endpoint para procesar mensajes (POST)
 
@@ -36,6 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		"messages" => $messages,
 		"max_tokens" => 800
 	];
+
+	if (!$OPENAI_API_KEY) {
+		header('Content-Type: application/json');
+		echo json_encode(["reply" => "Error: OPENAI_API_KEY no configurada en el entorno."]); exit;
+	}
 
 	$ch = curl_init('https://api.openai.com/v1/chat/completions');
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
