@@ -63,7 +63,7 @@
 			<article id="modulo-chat-ia" class="card module-card" data-module="Chat IA" tabindex="0">
 				<h3>Chat IA</h3>
 				<p>Asistente para recomendaciones y diagnósticos.</p>
-				<button class="btn btn-primary">Abrir</button>
+				<a class="btn btn-primary" href="ia/chat.php">Abrir</a>
 			</article>
 
 			<article id="modulo-exportacion" class="card module-card" data-module="Exportación" tabindex="0">
