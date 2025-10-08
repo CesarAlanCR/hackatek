@@ -27,6 +27,8 @@
 			<p class="lead">Monitorea, planifica y actúa para mejorar el rendimiento de tus cultivos. Interfaz inicial con módulos para comenzar.</p>
 		</section>
 
+	
+
 		<!-- Preview: Imágenes y Clima -->
 		<section class="preview-clima">
 			<div class="preview-grid">
@@ -63,7 +65,7 @@
 			<article id="modulo-chat-ia" class="card module-card" data-module="Chat IA" tabindex="0">
 				<h3>Chat IA</h3>
 				<p>Asistente para recomendaciones y diagnósticos.</p>
-				<button class="btn btn-primary">Abrir</button>
+				<a href="ia/chat.php" class="btn btn-primary">Abrir</a>
 			</article>
 
 			<article id="modulo-exportacion" class="card module-card" data-module="Exportación" tabindex="0">
