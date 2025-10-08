@@ -38,9 +38,9 @@
 					<h3>Clima</h3>
 					<p>Vista rápida: imagen satelital / drone y resumen meteorológico actual.</p>
 					<ul>
-						<li>Temperatura: 23°C</li>
-						<li>Humedad: 68%</li>
-						<li>Última imagen: hace 2 horas</li>
+						<li>Temperatura: <span id="temp-value">--</span></li>
+						<li>Humedad: <span id="humidity-value">--</span></li>
+						<li>Última imagen: <span id="satellite-updated">--</span></li>
 					</ul>
 					<button class="btn btn-primary">Ver detalle</button>
 				</div>
@@ -117,7 +117,18 @@
 		crossorigin=""
 		defer
 	></script>
-	<?php $owmKey = getenv('OWM_API_KEY') ?: ''; ?>
+	<?php
+		// Cargar configuración de OpenWeatherMap desde includes/owm_config.php
+		// Este archivo retorna la API key (recomendado: mantenerlo fuera de VCS o usar variables de entorno)
+		$owmKey = '';
+		$configPath = __DIR__ . '/../includes/owm_config.php';
+		if (file_exists($configPath)) {
+			$owmKey = include $configPath;
+		} else {
+			// Fallback a getenv si no existe el archivo
+			$owmKey = getenv('OWM_API_KEY') ?: '';
+		}
+	?>
 	<script>
 		// Expone la API key de OpenWeatherMap al frontend (configurar variable de entorno OWM_API_KEY en el servidor)
 		window.OWM_API_KEY = <?php echo json_encode($owmKey); ?>;

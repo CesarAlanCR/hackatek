@@ -9,6 +9,13 @@ document.addEventListener('DOMContentLoaded', function(){
     // Mapa y clima
     const mapContainer = document.getElementById('weather-map');
     const OWM_API_KEY = window.OWM_API_KEY || '';
+	// UI Clima
+	const tempEl = document.getElementById('temp-value');
+	const humEl = document.getElementById('humidity-value');
+	const satEl = document.getElementById('satellite-updated');
+	if (tempEl) tempEl.textContent = 'Cargando...';
+	if (humEl) humEl.textContent = 'Cargando...';
+	if (satEl) satEl.textContent = 'Cargando...';
 
 	function openModal(title, content){
 		modalTitle.textContent = title;
@@ -49,6 +56,16 @@ document.addEventListener('DOMContentLoaded', function(){
 	// Inicializa mapa si existe el contenedor
 	if (mapContainer && typeof L !== 'undefined') {
 		initWeatherMap(mapContainer, OWM_API_KEY);
+	} else {
+		// Si Leaflet no está disponible, al menos intenta poblar el panel de clima con el centro por defecto
+		if (OWM_API_KEY) {
+			const fallback = { lat: 9.7489, lon: -83.7534 };
+			fetchWeather(fallback.lat, fallback.lon, OWM_API_KEY)
+				.then(updateWeatherUIFromData)
+				.catch(err => showWeatherError(err));
+		} else {
+			showWeatherError('Falta API key');
+		}
 	}
 });
 
@@ -114,25 +131,109 @@ function initWeatherMap(container, apiKey) {
 			if (accuracy) {
 				L.circle([latitude, longitude], { radius: accuracy, color: '#2f8f44', fillColor: '#2f8f44', fillOpacity: 0.15 }).addTo(map);
 			}
-			// Cargar clima actual como popup extra (opcional)
+			// Cargar clima y actualizar popup + UI
 			if (apiKey) {
-				fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&lang=es&appid=${apiKey}`)
-					.then(r => r.ok ? r.json() : Promise.reject(r))
+				fetchWeather(latitude, longitude, apiKey)
 					.then(data => {
 						const desc = data.weather?.[0]?.description || 'Clima';
-						const temp = Math.round(data.main?.temp);
+						const temp = data.main?.temp != null ? Math.round(data.main.temp) : 'N/D';
 						marker.setPopupContent(`${text}<br>${desc}, ${temp}°C`);
+						updateWeatherUIFromData(data);
 					})
-					.catch(()=>{});
+					.catch(err => showWeatherError(err));
+			} else {
+				showWeatherError('Falta API key');
 			}
 		}, function(err){
 			// Permiso denegado o error
 			console.warn('Geolocalización no disponible:', err && err.message);
 			map.setView(defaultCenter, defaultZoom);
 			L.marker(defaultCenter).addTo(map).bindPopup('No se pudo obtener tu ubicación. Vista por defecto.');
+			// Intento de obtener clima en fallback por centro
+			if (apiKey) {
+				fetchWeather(defaultCenter[0], defaultCenter[1], apiKey)
+					.then(updateWeatherUIFromData)
+					.catch(err => showWeatherError(err));
+			} else {
+				showWeatherError('Falta API key');
+			}
 		}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
 	} else {
 		map.setView(defaultCenter, defaultZoom);
 		L.marker(defaultCenter).addTo(map).bindPopup('Geolocalización no soportada por tu navegador.');
+		if (apiKey) {
+			fetchWeather(defaultCenter[0], defaultCenter[1], apiKey)
+				.then(updateWeatherUIFromData)
+				.catch(err => showWeatherError(err));
+		} else {
+			showWeatherError('Falta API key');
+		}
 	}
+}
+
+// util: formatea "hace X" en español
+function timeAgo(date) {
+	const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+	const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
+	const intervals = [
+		{ sec: 60, unit: 'second' },
+		{ sec: 60 * 60, unit: 'minute' },
+		{ sec: 60 * 60 * 24, unit: 'hour' },
+		{ sec: 60 * 60 * 24 * 7, unit: 'day' }
+	];
+	let unit = 'second';
+	let value = -seconds;
+	if (seconds >= 60 && seconds < 3600) { unit = 'minute'; value = -Math.floor(seconds / 60); }
+	else if (seconds >= 3600 && seconds < 86400) { unit = 'hour'; value = -Math.floor(seconds / 3600); }
+	else if (seconds >= 86400) { unit = 'day'; value = -Math.floor(seconds / 86400); }
+	return rtf.format(value, unit);
+}
+
+// Llama a OpenWeatherMap y devuelve JSON de clima actual
+function fetchWeather(lat, lon, apiKey) {
+	const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=es&appid=${apiKey}`;
+	console.debug('Consultando OWM:', url);
+	return fetch(url).then(r => {
+		if (!r.ok) {
+			return r.text().then(t => {
+				throw new Error(`OWM error ${r.status}: ${t}`);
+			});
+		}
+		return r.json();
+	});
+}
+
+// Actualiza los spans del panel Clima con la data de OWM
+function updateWeatherUIFromData(data) {
+	try {
+		const tempEl = document.getElementById('temp-value');
+		const humEl = document.getElementById('humidity-value');
+		const satEl = document.getElementById('satellite-updated');
+		if (tempEl) {
+			if (data.main?.temp != null) tempEl.textContent = `${Math.round(data.main.temp)} °C`;
+			else tempEl.textContent = 'N/D';
+		}
+		if (humEl) {
+			if (data.main?.humidity != null) humEl.textContent = `${data.main.humidity} %`;
+			else humEl.textContent = 'N/D';
+		}
+		if (satEl) {
+			const dt = data.dt ? new Date(data.dt * 1000) : new Date();
+			satEl.textContent = timeAgo(dt);
+			satEl.setAttribute('title', dt.toLocaleString());
+		}
+	} catch (e) {
+		showWeatherError(e);
+	}
+}
+
+// Muestra mensajes de error amigables en el panel Clima
+function showWeatherError(err) {
+	const tempEl = document.getElementById('temp-value');
+	const humEl = document.getElementById('humidity-value');
+	const satEl = document.getElementById('satellite-updated');
+	if (tempEl && tempEl.textContent === 'Cargando...') tempEl.textContent = 'No disponible';
+	if (humEl && humEl.textContent === 'Cargando...') humEl.textContent = 'No disponible';
+	if (satEl && satEl.textContent === 'Cargando...') satEl.textContent = 'No disponible';
+	console.error('Error al obtener clima:', err);
 }
