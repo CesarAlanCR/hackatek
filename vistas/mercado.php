@@ -22,16 +22,37 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OptiLife - Análisis de mercado</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hackatek - Mercado</title>
   <link rel="stylesheet" href="../recursos/css/general.css">
+  <!-- (Opcional) Leaflet CSS solo si se reutiliza el mapa aquí -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    /* Ajustes específicos para tablas/controles del mercado dentro del mismo look */
+    form.controls label{display:flex;flex-direction:column;font-size:.85rem;font-weight:600;color:var(--green-4);background:linear-gradient(180deg,var(--green-1),white);padding:12px;border-radius:8px;border:1px solid rgba(47,143,68,0.08)}
+    form.controls input{margin-top:4px;padding:6px 8px;border:1px solid #c3d8c6;border-radius:6px;font:inherit}
+    form.controls .preview-grid{align-items:start}
+    .hint{color:var(--muted);font-size:.65rem;line-height:1.2;margin-top:4px}
+    .small{font-size:.75rem;color:var(--muted)}
+    .group-title{margin:12px 0 4px;color:var(--green-4)}
+    .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.65rem;line-height:1.3;letter-spacing:.5px;text-transform:uppercase;background:#d8e9db;color:#2f6138}
+    .badge.success{background:#2f8f44;color:#fff}
+    .badge.neutral{background:#cfe9d6;color:#2f6138}
+    .highlight{outline:2px solid #2f8f44}
+    ul.stats{list-style:none;margin:0;padding:0;font-size:.72rem;color:var(--muted)}
+    ul.stats li{margin:2px 0}
+    .warning{color:#a65c00;background:#fff4e0;padding:12px 16px;border-radius:8px;font-size:.8rem;border:1px solid #f5d5a3}
+  </style>
 </head>
 <body>
-  <!-- Header eliminado para mantener el mismo diseño que index.php -->
-
   <main class="container">
-    <section id="controles">
-      <h2>Parámetros de cálculo</h2>
+    <section class="hero">
+      <h2>Mercado y rentabilidad</h2>
+      <p class="lead">Analiza precios, costos logísticos y decide el mejor destino para tu producto.</p>
+    </section>
+
+    <section id="controles" class="card" aria-label="Parámetros de cálculo de mercado">
+      <h3 style="margin-top:0">Parámetros de cálculo</h3>
       <form class="controls" method="get" action="mercado.php">
         <div class="preview-grid">
           <label>
@@ -44,11 +65,11 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
             <input type="number" step="0.1" name="costo_km" value="<?= h($_GET['costo_km'] ?? '35') ?>">
             <small class="hint">Flete por ton = (distancia_km × costo_km) / capacidad_camión.</small>
           </label>
-          <label>
+            <label>
             Costo aduana (MXN)
             <span aria-label="Ayuda: costo de aduana" title="Incluye trámites y aranceles por cruce internacional por camión. Se prorratea por tonelada según la capacidad ingresada.">ℹ️</span>
             <input type="number" step="0.1" min="0" name="costo_aduana" value="<?= h($_GET['costo_aduana'] ?? '5000') ?>" required>
-            <small class="hint">Se prorratea por tonelada: aduana_por_ton = costo_aduana / capacidad_camión.</small>
+            <small class="hint">Se prorratea por ton: aduana_por_ton = costo_aduana / capacidad_camión.</small>
           </label>
           <label>
             Costo hora espera (MXN)
@@ -61,30 +82,26 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
             <input type="number" step="1" min="1" name="cajas_por_ton" value="<?= h($_GET['cajas_por_ton'] ?? '50') ?>" required>
           </label>
         </div>
-        <div style="margin-top: 12px;">
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-primary" type="submit">Actualizar</button>
-          <a class="btn btn-primary" href="mercado.php">Restablecer</a>
+          <button class="btn btn-primary" type="button" onclick="window.location.href='mercado.php'">Restablecer</button>
         </div>
       </form>
       <p class="small">Última actualización: <?= h($timestamp) ?></p>
     </section>
 
-    <section id="top4">
-      <h2>Top 4 opciones</h2>
+    <section id="top4" aria-label="Top 4 opciones" class="preview-clima">
+      <h3>Top 4 opciones</h3>
       <div class="modules">
         <?php if (!empty($top4)) : foreach ($top4 as $op): ?>
-          <article class="card module-card<?= ($op === $mejor ? ' highlight' : '') ?>">
+          <article class="card module-card<?= ($op === $mejor ? ' highlight' : '') ?>" tabindex="0">
             <header class="card-header">
               <span class="badge <?= !empty($op['disponibilidad']) ? 'success' : 'neutral' ?>">
                 <?= !empty($op['disponibilidad']) ? 'Disponible' : 'Sin datos' ?>
               </span>
               <strong><?= h(($op['modo'] ?? '') === 'exportacion' ? 'Exportación' : 'Nacional') ?></strong>
-              <?php if (!empty($op['mercado'])): ?>
-                <span>— <?= h($op['mercado']) ?></span>
-              <?php endif; ?>
-              <?php if (!empty($op['municipio'])): ?>
-                <span>— <?= h($op['municipio']) ?></span>
-              <?php endif; ?>
+              <?php if (!empty($op['mercado'])): ?><span>— <?= h($op['mercado']) ?></span><?php endif; ?>
+              <?php if (!empty($op['municipio'])): ?><span>— <?= h($op['municipio']) ?></span><?php endif; ?>
             </header>
             <div class="card-body">
               <ul class="stats">
@@ -106,16 +123,14 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       </div>
     </section>
 
-    <section id="recomendacion">
-      <h2>Recomendación</h2>
+    <section id="recomendacion" aria-label="Recomendación principal">
+      <h3>Recomendación</h3>
       <?php if (!empty($recomendacion) && !empty($mejor)) : ?>
         <article class="card highlight">
           <header class="card-header">
             <span class="badge success">Mejor opción</span>
             <strong><?= h(($mejor['modo'] ?? '')) === 'exportacion' ? 'Exportación' : 'Mercado nacional' ?></strong>
-            <?php if (!empty($mejor['mercado'])): ?>
-              <span>— <?= h($mejor['mercado']) ?></span>
-            <?php endif; ?>
+            <?php if (!empty($mejor['mercado'])): ?><span>— <?= h($mejor['mercado']) ?></span><?php endif; ?>
           </header>
           <div class="card-body">
             <p><?= h($recomendacion) ?></p>
@@ -136,22 +151,18 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       <?php endif; ?>
     </section>
 
-    <section id="opciones">
-      <h2>Todas las opciones</h2>
+    <section id="opciones" aria-label="Todas las opciones calculadas">
+      <h3>Todas las opciones</h3>
       <div class="modules">
         <?php if (!empty($opciones)) : foreach ($opciones as $op): ?>
-          <article class="card module-card<?= ($op === $mejor ? ' highlight' : '') ?>">
+          <article class="card module-card<?= ($op === $mejor ? ' highlight' : '') ?>" tabindex="0">
             <header class="card-header">
               <span class="badge <?= !empty($op['disponibilidad']) ? 'success' : 'neutral' ?>">
                 <?= !empty($op['disponibilidad']) ? 'Disponible' : 'Sin datos' ?>
               </span>
               <strong><?= h(($op['modo'] ?? '') === 'exportacion' ? 'Exportación' : 'Nacional') ?></strong>
-              <?php if (!empty($op['mercado'])): ?>
-                <span>— <?= h($op['mercado']) ?></span>
-              <?php endif; ?>
-              <?php if (!empty($op['municipio'])): ?>
-                <span>— <?= h($op['municipio']) ?></span>
-              <?php endif; ?>
+              <?php if (!empty($op['mercado'])): ?><span>— <?= h($op['mercado']) ?></span><?php endif; ?>
+              <?php if (!empty($op['municipio'])): ?><span>— <?= h($op['municipio']) ?></span><?php endif; ?>
             </header>
             <div class="card-body">
               <ul class="stats">
@@ -172,24 +183,21 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
         <?php endif; ?>
       </div>
     </section>
-    <section id="agrupado">
-      <h2>Desglose por país/estado</h2>
+
+    <section id="agrupado" aria-label="Desglose agrupado">
+      <h3>Desglose por país / estado</h3>
       <?php if (!empty($agrupado)) : foreach ($agrupado as $grupo => $lista): ?>
-        <h3 class="group-title"><?= h($grupo) ?></h3>
+        <h4 class="group-title"><?= h($grupo) ?></h4>
         <div class="modules">
           <?php foreach ($lista as $op): ?>
-            <article class="card module-card<?= ($op === $mejor ? ' highlight' : '') ?>">
+            <article class="card module-card<?= ($op === $mejor ? ' highlight' : '') ?>" tabindex="0">
               <header class="card-header">
                 <span class="badge <?= !empty($op['disponibilidad']) ? 'success' : 'neutral' ?>">
                   <?= !empty($op['disponibilidad']) ? 'Disponible' : 'Sin datos' ?>
                 </span>
                 <strong><?= h(($op['modo'] ?? '') === 'exportacion' ? 'Exportación' : 'Nacional') ?></strong>
-                <?php if (!empty($op['mercado'])): ?>
-                  <span>— <?= h($op['mercado']) ?></span>
-                <?php endif; ?>
-                <?php if (!empty($op['municipio'])): ?>
-                  <span>— <?= h($op['municipio']) ?></span>
-                <?php endif; ?>
+                <?php if (!empty($op['mercado'])): ?><span>— <?= h($op['mercado']) ?></span><?php endif; ?>
+                <?php if (!empty($op['municipio'])): ?><span>— <?= h($op['municipio']) ?></span><?php endif; ?>
               </header>
               <div class="card-body">
                 <ul class="stats">
@@ -212,15 +220,11 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       <?php endif; ?>
     </section>
 
-    <section id="notas">
-      <h2>Notas</h2>
-      <ul>
-        <?php if (!empty($notas['costo_aduana'])): ?>
-          <li><?= h($notas['costo_aduana']) ?></li>
-        <?php endif; ?>
-        <?php if (!empty($notas['cajas_por_ton'])): ?>
-          <li><?= h($notas['cajas_por_ton']) ?></li>
-        <?php endif; ?>
+    <section id="notas" aria-label="Notas aclaratorias">
+      <h3>Notas</h3>
+      <ul class="stats">
+        <?php if (!empty($notas['costo_aduana'])): ?><li><?= h($notas['costo_aduana']) ?></li><?php endif; ?>
+        <?php if (!empty($notas['cajas_por_ton'])): ?><li><?= h($notas['cajas_por_ton']) ?></li><?php endif; ?>
       </ul>
     </section>
   </main>
@@ -231,6 +235,28 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
     </div>
   </footer>
 
-  <script src="../recursos/js/class.js"></script>
+  <!-- Modal reutilizable (igual que index para consistencia futura) -->
+  <div id="module-modal" class="modal" role="dialog" aria-hidden="true" aria-labelledby="modal-title">
+    <div class="modal-content">
+      <button class="modal-close" aria-label="Cerrar">×</button>
+      <h3 id="modal-title"></h3>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS opcional (solo si se agrega un mapa en esta página) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <?php
+    // Reutilizar lógica de API key como en index.php
+    $owmKey = '';
+    $configPath = __DIR__ . '/../includes/owm_config.php';
+    if (file_exists($configPath)) {
+      $owmKey = include $configPath;
+    } else {
+      $owmKey = getenv('OWM_API_KEY') ?: '';
+    }
+  ?>
+  <script>window.OWM_API_KEY = <?= json_encode($owmKey); ?>;</script>
+  <script src="../recursos/js/class.js" defer></script>
 </body>
 </html>
