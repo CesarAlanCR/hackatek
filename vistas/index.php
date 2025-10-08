@@ -38,9 +38,9 @@
 					<h3>Clima</h3>
 					<p>Vista rápida: imagen satelital / drone y resumen meteorológico actual.</p>
 					<ul>
-						<li>Temperatura: 23°C</li>
-						<li>Humedad: 68%</li>
-						<li>Última imagen: hace 2 horas</li>
+						<li>Temperatura: <span id="temp-value">--</span></li>
+						<li>Humedad: <span id="humidity-value">--</span></li>
+						<li>Última imagen: <span id="satellite-updated">--</span></li>
 					</ul>
 					<button class="btn btn-primary">Ver detalle</button>
 				</div>
@@ -48,7 +48,11 @@
 		</section>
 
 		<section class="modules" aria-label="Módulos principales">
-			
+			<article id="modulo-clima" class="card module-card" data-module="Clima" tabindex="0">
+				<h3>Imagenes</h3>
+				<p>IA que reconoce imagenes de hojas afectadas para ver que pasa</p>
+				<button class="btn btn-primary">Abrir</button>
+			</article>
 
 			<article id="modulo-mercado" class="card module-card" data-module="Mercado" tabindex="0">
 				<h3>Mercado</h3>
@@ -59,7 +63,7 @@
 			<article id="modulo-chat-ia" class="card module-card" data-module="Chat IA" tabindex="0">
 				<h3>Chat IA</h3>
 				<p>Asistente para recomendaciones y diagnósticos.</p>
-				<a href="ia/chat.php" class="btn btn-primary">Abrir</a>
+				<button class="btn btn-primary">Abrir</button>
 			</article>
 
 			<article id="modulo-exportacion" class="card module-card" data-module="Exportación" tabindex="0">
@@ -113,7 +117,18 @@
 		crossorigin=""
 		defer
 	></script>
-	<?php $owmKey = getenv('OWM_API_KEY') ?: ''; ?>
+	<?php
+		// Carga la API key desde un archivo de configuración centralizado.
+		// Nota: evita subir este archivo al repositorio (ver .gitignore).
+		$configPath = __DIR__ . '/../includes/owm_config.php';
+		$owmKey = '';
+		if (file_exists($configPath)) {
+			$config = include $configPath;
+			if (is_array($config) && isset($config['OWM_API_KEY'])) {
+				$owmKey = $config['OWM_API_KEY'];
+			}
+		}
+	?>
 	<script>
 		// Expone la API key de OpenWeatherMap al frontend (configurar variable de entorno OWM_API_KEY en el servidor)
 		window.OWM_API_KEY = <?php echo json_encode($owmKey); ?>;
