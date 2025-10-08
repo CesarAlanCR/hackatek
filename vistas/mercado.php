@@ -57,29 +57,31 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
         <div class="preview-grid">
           <label>
             Capacidad camión (ton)
-            <input type="number" step="0.1" name="capacidad_ton" value="<?= h($_GET['capacidad_ton'] ?? '20') ?>">
+            <input type="number" step="0.1" min="0" max="40" name="capacidad_ton" value="<?= h($_GET['capacidad_ton'] ?? '0') ?>" required>
+            <small class="hint">Rango sugerido: 0 < capacidad ≤ 40 ton.</small>
           </label>
           <label>
             Costo por km (MXN)
             <span aria-label="Ayuda: costo por km" title="Costo total por kilómetro por camión (combustible, operador, casetas, mantenimiento). Se prorratea por tonelada.">ℹ️</span>
-            <input type="number" step="0.1" name="costo_km" value="<?= h($_GET['costo_km'] ?? '35') ?>">
+            <input type="number" step="0.1" min="0" max="200" name="costo_km" value="<?= h($_GET['costo_km'] ?? '0') ?>">
             <small class="hint">Flete por ton = (distancia_km × costo_km) / capacidad_camión.</small>
           </label>
             <label>
             Costo aduana (MXN)
             <span aria-label="Ayuda: costo de aduana" title="Incluye trámites y aranceles por cruce internacional por camión. Se prorratea por tonelada según la capacidad ingresada.">ℹ️</span>
-            <input type="number" step="0.1" min="0" name="costo_aduana" value="<?= h($_GET['costo_aduana'] ?? '5000') ?>" required>
+            <input type="number" step="0.1" min="0" max="100000" name="costo_aduana" value="<?= h($_GET['costo_aduana'] ?? '0') ?>" required>
             <small class="hint">Se prorratea por ton: aduana_por_ton = costo_aduana / capacidad_camión.</small>
           </label>
           <label>
             Costo hora espera (MXN)
             <span aria-label="Ayuda: costo de espera" title="Costo por hora de inmovilización del camión en frontera (operador, combustible en ralentí, oportunidad). Se prorratea por tonelada.">ℹ️</span>
-            <input type="number" step="0.1" name="costo_espera_hora" value="<?= h($_GET['costo_espera_hora'] ?? '400') ?>">
+            <input type="number" step="0.1" min="0" max="10000" name="costo_espera_hora" value="<?= h($_GET['costo_espera_hora'] ?? '0') ?>">
             <small class="hint">Espera por ton = ((min_espera/60) × costo_espera_hora) / capacidad_camión.</small>
           </label>
           <label title="Se usa para convertir precios cotizados por caja a MXN por tonelada.">
             Cajas por tonelada
-            <input type="number" step="1" min="1" name="cajas_por_ton" value="<?= h($_GET['cajas_por_ton'] ?? '50') ?>" required>
+            <input type="number" step="1" min="0" max="200" name="cajas_por_ton" value="<?= h($_GET['cajas_por_ton'] ?? '0') ?>" required>
+            <small class="hint">Rango sugerido: 0 < cajas_por_ton ≤ 200 (sugerido 50).</small>
           </label>
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -88,6 +90,38 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
         </div>
       </form>
       <p class="small">Última actualización: <?= h($timestamp) ?></p>
+    </section>
+
+    <section id="recomendacion" aria-label="Recomendación principal">
+      <h3>Recomendación</h3>
+      <?php if (!empty($recomendacion) && !empty($mejor)) : ?>
+        <article class="card highlight">
+          <header class="card-header">
+            <span class="badge success">Mejor opción</span>
+            <strong><?= h(($mejor['modo'] ?? '')) === 'exportacion' ? 'Exportación' : 'Mercado nacional' ?></strong>
+            <?php if (!empty($mejor['mercado'])): ?><span>— <?= h($mejor['mercado']) ?></span><?php endif; ?>
+          </header>
+          <div class="card-body">
+            <p><?= h($recomendacion) ?></p>
+            <ul class="stats">
+              <li><strong>Ganancia neta:</strong> $<?= h(number_format((float)($mejor['ganancia_neta_mxn'] ?? 0), 2)) ?> MXN/ton</li>
+              <li><strong>Ingreso bruto:</strong> $<?= h(number_format((float)($mejor['ingreso_bruto_mxn'] ?? 0), 2)) ?> MXN/ton</li>
+              <li><strong>Flete:</strong> $<?= h(number_format((float)($mejor['costos']['flete_mxn'] ?? 0), 2)) ?> MXN/ton</li>
+              <?php if (($mejor['modo'] ?? '') === 'exportacion'): ?>
+                <li><strong>Aduana:</strong> $<?= h(number_format((float)($mejor['costos']['aduana_mxn'] ?? 0), 2)) ?> MXN/ton</li>
+                <li><strong>Espera:</strong> $<?= h(number_format((float)($mejor['costos']['espera_mxn'] ?? 0), 2)) ?> MXN/ton</li>
+              <?php endif; ?>
+              <li><strong>Distancia:</strong> <?= h(number_format((float)($mejor['distancia_km'] ?? 0), 2)) ?> km</li>
+            </ul>
+          </div>
+        </article>
+      <?php else: ?>
+        <?php if (!empty($recomendacion)): ?>
+          <p class="warning"><?= h($recomendacion) ?></p>
+        <?php else: ?>
+          <p class="warning">No hay datos suficientes para mostrar una recomendación.</p>
+        <?php endif; ?>
+      <?php endif; ?>
     </section>
 
     <section id="top4" aria-label="Top 4 opciones" class="preview-clima">
@@ -121,34 +155,6 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
           <p>No hay opciones para mostrar.</p>
         <?php endif; ?>
       </div>
-    </section>
-
-    <section id="recomendacion" aria-label="Recomendación principal">
-      <h3>Recomendación</h3>
-      <?php if (!empty($recomendacion) && !empty($mejor)) : ?>
-        <article class="card highlight">
-          <header class="card-header">
-            <span class="badge success">Mejor opción</span>
-            <strong><?= h(($mejor['modo'] ?? '')) === 'exportacion' ? 'Exportación' : 'Mercado nacional' ?></strong>
-            <?php if (!empty($mejor['mercado'])): ?><span>— <?= h($mejor['mercado']) ?></span><?php endif; ?>
-          </header>
-          <div class="card-body">
-            <p><?= h($recomendacion) ?></p>
-            <ul class="stats">
-              <li><strong>Ganancia neta:</strong> $<?= h(number_format((float)($mejor['ganancia_neta_mxn'] ?? 0), 2)) ?> MXN/ton</li>
-              <li><strong>Ingreso bruto:</strong> $<?= h(number_format((float)($mejor['ingreso_bruto_mxn'] ?? 0), 2)) ?> MXN/ton</li>
-              <li><strong>Flete:</strong> $<?= h(number_format((float)($mejor['costos']['flete_mxn'] ?? 0), 2)) ?> MXN/ton</li>
-              <?php if (($mejor['modo'] ?? '') === 'exportacion'): ?>
-                <li><strong>Aduana:</strong> $<?= h(number_format((float)($mejor['costos']['aduana_mxn'] ?? 0), 2)) ?> MXN/ton</li>
-                <li><strong>Espera:</strong> $<?= h(number_format((float)($mejor['costos']['espera_mxn'] ?? 0), 2)) ?> MXN/ton</li>
-              <?php endif; ?>
-              <li><strong>Distancia:</strong> <?= h(number_format((float)($mejor['distancia_km'] ?? 0), 2)) ?> km</li>
-            </ul>
-          </div>
-        </article>
-      <?php else: ?>
-        <p class="warning">No hay datos suficientes para mostrar una recomendación.</p>
-      <?php endif; ?>
     </section>
 
     <section id="opciones" aria-label="Todas las opciones calculadas">
@@ -258,5 +264,65 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
   ?>
   <script>window.OWM_API_KEY = <?= json_encode($owmKey); ?>;</script>
   <script src="../recursos/js/class.js" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.querySelector('form.controls');
+      if (!form) return;
+      const cap = form.elements['capacidad_ton'];
+      const cajas = form.elements['cajas_por_ton'];
+      const costoKm = form.elements['costo_km'];
+      const costoAdu = form.elements['costo_aduana'];
+      const costoEsp = form.elements['costo_espera_hora'];
+
+      const clearValidity = (ev) => ev.target.setCustomValidity('');
+      [cap, cajas, costoKm, costoAdu, costoEsp].forEach(el => el && el.addEventListener('input', clearValidity));
+
+      form.addEventListener('submit', function(e) {
+        let valid = true;
+        const inRange = (val, opts) => {
+          const n = parseFloat(val);
+          if (isNaN(n)) return false;
+          if (opts.gt0 && !(n > 0)) return false;
+          if (typeof opts.min === 'number' && n < opts.min) return false;
+          if (typeof opts.max === 'number' && n > opts.max) return false;
+          return true;
+        };
+
+        if (cap && valid) {
+          if (!inRange(cap.value, { gt0: true, max: 40 })) {
+            cap.setCustomValidity('Capacidad debe ser > 0 y ≤ 40 ton');
+            cap.reportValidity(); valid = false;
+          }
+        }
+        if (cajas && valid) {
+          if (!inRange(cajas.value, { gt0: true, max: 200 })) {
+            cajas.setCustomValidity('Cajas por tonelada debe ser > 0 y ≤ 200');
+            cajas.reportValidity(); valid = false;
+          }
+        }
+        if (costoKm && valid) {
+          if (!inRange(costoKm.value, { min: 0, max: 200 })) {
+            costoKm.setCustomValidity('Costo por km debe estar entre 0 y 200 MXN');
+            costoKm.reportValidity(); valid = false;
+          }
+        }
+        if (costoAdu && valid) {
+          if (!inRange(costoAdu.value, { min: 0, max: 100000 })) {
+            costoAdu.setCustomValidity('Costo de aduana debe estar entre 0 y 100,000 MXN');
+            costoAdu.reportValidity(); valid = false;
+          }
+        }
+        if (costoEsp && valid) {
+          if (!inRange(costoEsp.value, { min: 0, max: 10000 })) {
+            costoEsp.setCustomValidity('Costo hora espera debe estar entre 0 y 10,000 MXN');
+            costoEsp.reportValidity(); valid = false;
+          }
+        }
+        if (!valid) {
+          e.preventDefault();
+        }
+      });
+    });
+  </script>
 </body>
 </html>
