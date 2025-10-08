@@ -1,0 +1,8 @@
+.env
+.vscode
+/node_modules
+/.env.local
+/.env.*.local
+.DS_Store
+includes/owm_config.php
+.env.example

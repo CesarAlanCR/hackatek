@@ -63,7 +63,7 @@
 			<article id="modulo-chat-ia" class="card module-card" data-module="Chat IA" tabindex="0">
 				<h3>Chat IA</h3>
 				<p>Asistente para recomendaciones y diagnósticos.</p>
-				<a class="btn btn-primary" href="ia/chat.php">Abrir</a>
+				<button class="btn btn-primary">Abrir</button>
 			</article>
 
 			<article id="modulo-exportacion" class="card module-card" data-module="Exportación" tabindex="0">
@@ -118,15 +118,15 @@
 		defer
 	></script>
 	<?php
-		// Cargar configuración de OpenWeatherMap desde includes/owm_config.php
-		// Este archivo retorna la API key (recomendado: mantenerlo fuera de VCS o usar variables de entorno)
-		$owmKey = '';
+		// Carga la API key desde un archivo de configuración centralizado.
+		// Nota: evita subir este archivo al repositorio (ver .gitignore).
 		$configPath = __DIR__ . '/../includes/owm_config.php';
+		$owmKey = '';
 		if (file_exists($configPath)) {
-			$owmKey = include $configPath;
-		} else {
-			// Fallback a getenv si no existe el archivo
-			$owmKey = getenv('OWM_API_KEY') ?: '';
+			$config = include $configPath;
+			if (is_array($config) && isset($config['OWM_API_KEY'])) {
+				$owmKey = $config['OWM_API_KEY'];
+			}
 		}
 	?>
 	<script>
