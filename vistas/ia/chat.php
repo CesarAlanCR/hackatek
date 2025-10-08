@@ -4,7 +4,7 @@
 // Archivo: vistas/ia/chat.php
 
 // Configuración: API Key OpenAI
-$OPENAI_API_KEY = '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';
+$OPENAI_API_KEY = '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';
 
 // Endpoint para procesar mensajes (POST)
 
