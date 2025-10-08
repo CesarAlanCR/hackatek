@@ -12,17 +12,7 @@
 	<link rel="stylesheet" href="../recursos/css/general.css">
 </head>
 <body>
-	<header class="site-header">
-		<div class="container">
-			<h1 class="brand">Hackatek <span class="muted">Cultivos</span></h1>
-			<nav class="main-nav" aria-label="Navegación principal">
-				<a href="#modulo-siembra">Siembra</a>
-				<a href="#modulo-riego">Riego</a>
-				<a href="#modulo-plagas">Plagas</a>
-				<a href="#modulo-cosecha">Cosecha</a>
-			</nav>
-		</div>
-	</header>
+	<!-- Header removed by user request -->
 
 	<main class="container">
 		<section class="hero">
