@@ -6,30 +6,57 @@ declare(strict_types=1);
 require_once __DIR__ . '/data_fetcher.php';
 
 function analizar_mercado_completo(): array {
-    // Parámetros y costos fijos
-    // Valores por defecto
-    $COSTO_POR_KM_MXN = 35.0;            // Costo por km por camión
-    // Costo de aduana por camión (lo ingresa el usuario)
-    $COSTO_ADUANA_MXN = 5000.0;
-    $COSTO_HORA_ESPERA_MXN = 400.0;      // Costo por hora de espera por camión
-    $CAPACIDAD_TON_CAMION = 20.0;        // Toneladas por camión (ajustable)
+    // Lectura y validación server-side de parámetros
+    // Inicializar en 0; solo se usan tras pasar validación
+    $COSTO_POR_KM_MXN = 0.0;             // Costo por km por camión
+    $COSTO_ADUANA_MXN = 0.0;             // Costo por cruce por camión
+    $COSTO_HORA_ESPERA_MXN = 0.0;        // Costo por hora de espera por camión
+    $CAPACIDAD_TON_CAMION = 0.0;         // Toneladas por camión (requiere > 0)
 
-    // Overrides por querystring para tuning rápido (opcional)
-    if (isset($_GET['capacidad_ton'])) {
-        $CAPACIDAD_TON_CAMION = max(1.0, (float)$_GET['capacidad_ton']);
+    $errors = [];
+    $getf = static function(string $k): ?float { return isset($_GET[$k]) && $_GET[$k] !== '' ? (float)$_GET[$k] : null; };
+    $cap = $getf('capacidad_ton');
+    $costoKm = $getf('costo_km');
+    $costoAdu = $getf('costo_aduana');
+    $costoEsp = $getf('costo_espera_hora');
+    $cajasPorTon = $getf('cajas_por_ton');
+
+    // Reglas de negocio (coherentes con la validación client-side)
+    if ($cap === null || !($cap > 0) || $cap > 40) {
+        $errors[] = 'Capacidad de camión debe ser > 0 y ≤ 40 toneladas.';
+    } else {
+        $CAPACIDAD_TON_CAMION = $cap;
     }
-    if (isset($_GET['costo_km'])) {
-        $COSTO_POR_KM_MXN = max(0.0, (float)$_GET['costo_km']);
+    if ($cajasPorTon === null || !($cajasPorTon > 0) || $cajasPorTon > 200) {
+        $errors[] = 'Cajas por tonelada debe ser > 0 y ≤ 200.';
     }
-    if (isset($_GET['costo_aduana'])) {
-        $COSTO_ADUANA_MXN = max(0.0, (float)$_GET['costo_aduana']);
+    if ($costoKm !== null) {
+        if ($costoKm < 0 || $costoKm > 200) { $errors[] = 'Costo por km debe estar entre 0 y 200 MXN.'; }
+        else { $COSTO_POR_KM_MXN = $costoKm; }
     }
-    if (isset($_GET['costo_espera_hora'])) {
-        $COSTO_HORA_ESPERA_MXN = max(0.0, (float)$_GET['costo_espera_hora']);
+    if ($costoAdu !== null) {
+        if ($costoAdu < 0 || $costoAdu > 100000) { $errors[] = 'Costo de aduana debe estar entre 0 y 100,000 MXN.'; }
+        else { $COSTO_ADUANA_MXN = $costoAdu; }
     }
-    $cajasPorTon = 50; // Conversión para productos cotizados por caja
-    if (isset($_GET['cajas_por_ton'])) {
-        $cajasPorTon = max(1.0, (float)$_GET['cajas_por_ton']);
+    if ($costoEsp !== null) {
+        if ($costoEsp < 0 || $costoEsp > 10000) { $errors[] = 'Costo hora de espera debe estar entre 0 y 10,000 MXN.'; }
+        else { $COSTO_HORA_ESPERA_MXN = $costoEsp; }
+    }
+
+    if (!empty($errors)) {
+        return [
+            'mejor_opcion' => null,
+            'top4' => [],
+            'todas_las_opciones' => [],
+            'agrupado' => [],
+            'recomendacion' => 'Corrige los parámetros: ' . implode(' ', $errors),
+            'fuentes' => [],
+            'timestamp' => date('c'),
+            'notas' => [
+                'costo_aduana' => 'El costo de aduana representa trámites y aranceles por cruce internacional. Este valor lo ingresa el usuario y se prorratea por tonelada según la capacidad del camión.',
+                'cajas_por_ton' => 'Debes ingresar una conversión válida de cajas por tonelada para convertir USD/caja a MXN/ton.',
+            ],
+        ];
     }
 
     global $api_keys;
@@ -62,10 +89,10 @@ function analizar_mercado_completo(): array {
             // Si no hay coords, sólo cálculo del ingreso y marcar flete como 0
 
             $distKm = $coords ? obtener_datos_logistica($api_keys['rutas'], $coords) : 0.0;
-            // Costos por tonelada (dividir costos del viaje completo entre la capacidad del camión)
-            $costoFlete = ($distKm * $COSTO_POR_KM_MXN) / max(1.0, $CAPACIDAD_TON_CAMION);
-            $aduana = $COSTO_ADUANA_MXN / max(1.0, $CAPACIDAD_TON_CAMION);
-            $espera = $costoEspera / max(1.0, $CAPACIDAD_TON_CAMION);
+            // Costos por tonelada (capacidad validada > 0 en server-side)
+            $costoFlete = ($distKm * $COSTO_POR_KM_MXN) / $CAPACIDAD_TON_CAMION;
+            $aduana = $COSTO_ADUANA_MXN / $CAPACIDAD_TON_CAMION;
+            $espera = $costoEspera / $CAPACIDAD_TON_CAMION;
 
             $ingresoBruto = $precioUsdCaja * $cajasPorTon * $tipoCambio; // MXN/ton
             $costosTotales = $costoFlete + $aduana + $espera;
@@ -101,11 +128,11 @@ function analizar_mercado_completo(): array {
     $precioNacional = isset($precioSNIIM['precio_mxn_por_tonelada']) ? (float)$precioSNIIM['precio_mxn_por_tonelada'] : 0.0;
     $municipioNacional = $precioSNIIM['municipio'] ?? null;
 
-    // Para la venta local no aplican aduana ni espera
-    // Distancia: calculamos desde Cuauhtémoc a Monterrey si hay coords, sino 0
-    $coordsMonterrey = [-100.3180, 25.6751];
-    $distKmLocal = obtener_datos_logistica($api_keys['rutas'], $coordsMonterrey);
-    $costoFleteLocal = ($distKmLocal * $COSTO_POR_KM_MXN) / max(1.0, $CAPACIDAD_TON_CAMION);
+    // Para la venta nacional no aplican aduana ni espera
+    // Distancia: usar capital del estado relevante (Chihuahua) en lugar de Monterrey
+    $coordsChihuahua = [-106.0691, 28.6320]; // Chihuahua capital
+    $distKmLocal = obtener_datos_logistica($api_keys['rutas'], $coordsChihuahua);
+    $costoFleteLocal = ($distKmLocal * $COSTO_POR_KM_MXN) / $CAPACIDAD_TON_CAMION;
 
     $opciones[] = [
         'modo' => 'nacional',
@@ -136,8 +163,8 @@ function analizar_mercado_completo(): array {
         if (stripos($estado, 'Coahuila') !== false) { $coordsEstado = [-101.0079, 25.4267]; } // Saltillo
         if (stripos($estado, 'Jalisco') !== false) { $coordsEstado = [-103.3496, 20.6597]; } // Guadalajara
         if (!$coordsEstado) { continue; }
-        $distKmNac = obtener_datos_logistica($api_keys['rutas'], $coordsEstado);
-        $costoFleteNac = ($distKmNac * $COSTO_POR_KM_MXN) / max(1.0, $CAPACIDAD_TON_CAMION);
+    $distKmNac = obtener_datos_logistica($api_keys['rutas'], $coordsEstado);
+    $costoFleteNac = ($distKmNac * $COSTO_POR_KM_MXN) / $CAPACIDAD_TON_CAMION;
         $gananciaNetaNac = $precio - $costoFleteNac;
         $opciones[] = [
             'modo' => 'nacional',
@@ -176,24 +203,40 @@ function analizar_mercado_completo(): array {
         $recomendacion = 'No hay datos suficientes para generar una recomendación.';
     } else {
         if (($mejor['modo'] ?? '') === 'exportacion') {
-            $recomendacion = sprintf("Recomiendo exportar a %s: ganancia neta estimada %s MXN por tonelada.", $mejor['mercado'] ?? 'mercado externo', number_format($mejor['ganancia_neta_mxn'], 2));
+            $recomendacion = sprintf(
+                "Recomiendo exportar a %s: ganancia neta estimada %s MXN por tonelada.",
+                $mejor['mercado'] ?? 'mercado externo',
+                number_format($mejor['ganancia_neta_mxn'], 2)
+            );
             // Comparativa con local
             $local = null;
             foreach ($opciones as $o) { if (($o['modo'] ?? '') === 'nacional') { $local = $o; break; } }
-            $localGain = $local['ganancia_neta_mxn'] ?? null;
+            $localGain = isset($local['ganancia_neta_mxn']) ? (float)$local['ganancia_neta_mxn'] : null;
             if (is_numeric($localGain)) {
                 $diff = $mejor['ganancia_neta_mxn'] - $localGain;
-                $pct = $localGain != 0 ? ($diff / max(1, $localGain)) * 100 : 100;
-                $recomendacion .= sprintf(" Esto es %s MXN (%s%%) más que la venta local.", number_format($diff, 2), number_format($pct, 2));
+                if ($localGain > 0 && $mejor['ganancia_neta_mxn'] > 0) {
+                    $pct = ($diff / $localGain) * 100.0;
+                    $recomendacion .= sprintf(" Esto es %s MXN (%s%%) más que la venta local.", number_format($diff, 2), number_format($pct, 2));
+                } else {
+                    $recomendacion .= sprintf(" Esto es %s MXN más que la venta local (comparación porcentual no aplica).", number_format($diff, 2));
+                }
             }
         } else {
-            $recomendacion = sprintf("Recomiendo vender en el mercado nacional: ganancia neta estimada %s MXN por tonelada.", number_format($mejor['ganancia_neta_mxn'], 2));
+            $recomendacion = sprintf(
+                "Recomiendo vender en el mercado nacional: ganancia neta estimada %s MXN por tonelada.",
+                number_format($mejor['ganancia_neta_mxn'], 2)
+            );
             $exp = null;
             foreach ($opciones as $o) { if (($o['modo'] ?? '') === 'exportacion' && !empty($o['disponibilidad'])) { $exp = $o; break; } }
             if ($exp) {
-                $diff = $mejor['ganancia_neta_mxn'] - $exp['ganancia_neta_mxn'];
-                $pct = $exp['ganancia_neta_mxn'] != 0 ? ($diff / max(1, $exp['ganancia_neta_mxn'])) * 100 : 100;
-                $recomendacion .= sprintf(" Esto es %s MXN (%s%%) más que la mejor opción de exportación.", number_format($diff, 2), number_format($pct, 2));
+                $expGain = (float)$exp['ganancia_neta_mxn'];
+                $diff = $mejor['ganancia_neta_mxn'] - $expGain;
+                if ($expGain > 0 && $mejor['ganancia_neta_mxn'] > 0) {
+                    $pct = ($diff / $expGain) * 100.0;
+                    $recomendacion .= sprintf(" Esto es %s MXN (%s%%) más que la mejor opción de exportación.", number_format($diff, 2), number_format($pct, 2));
+                } else {
+                    $recomendacion .= sprintf(" Esto es %s MXN más que la mejor opción de exportación (comparación porcentual no aplica).", number_format($diff, 2));
+                }
             }
         }
     }
