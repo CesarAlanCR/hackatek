@@ -5,10 +5,11 @@ document.addEventListener('DOMContentLoaded', function(){
 	const modal = document.getElementById('module-modal');
 	const modalTitle = document.getElementById('modal-title');
 	const modalBody = document.getElementById('modal-body');
-	const closeBtn = modal.querySelector('.modal-close');
+	const closeBtn = modal ? modal.querySelector('.modal-close') : null;
     // Mapa y clima
 	const mapContainer = document.getElementById('weather-map');
 	const OWM_API_KEY = window.OWM_API_KEY || '';
+	
 	// Inicializa con fallback para evitar "Ubicación no disponible" si el usuario hace clic muy rápido
 	let lastCoords = { lat: 9.7489, lon: -83.7534 }; // Fallback: Costa Rica centro aprox
 	// UI Clima
@@ -20,6 +21,10 @@ document.addEventListener('DOMContentLoaded', function(){
 	if (satEl) satEl.textContent = 'Cargando...';
 
 	function openModal(title, content){
+		if (!modal || !modalTitle || !modalBody) {
+			return;
+		}
+		
 		modalTitle.textContent = title;
 		modalBody.innerHTML = '<p>'+content+'</p>';
 		modal.setAttribute('aria-hidden','false');
@@ -58,6 +63,10 @@ document.addEventListener('DOMContentLoaded', function(){
 	}
 
 	function closeModal(){
+		if (!modal) {
+			return;
+		}
+		
 		modal.setAttribute('aria-hidden','true');
 		// Desbloquear scroll
 		document.body.style.overflow = '';
@@ -85,23 +94,45 @@ document.addEventListener('DOMContentLoaded', function(){
 	}
 
 	cards.forEach(card=>{
-		const btn = card.querySelector('button');
+		const btn = card.querySelector('button') || card.querySelector('a.btn');
+		if (!btn) {
+			return; // Saltar esta card si no tiene botón ni enlace
+		}
+		
 		function handleOpen(){
+			// Si es un enlace, dejar que funcione normalmente
+			if (btn.tagName === 'A' && btn.href) {
+				return; // No interferir con navegación
+			}
+			
 			const name = card.getAttribute('data-module') || card.id || 'Módulo';
 			openModal(name, 'Contenido inicial para el módulo "'+name+'". Aquí puedes añadir formularios, listados y gráficos.');
 		}
-		btn.addEventListener('click', handleOpen);
+		
+		if (btn.tagName === 'BUTTON') {
+			btn.addEventListener('click', handleOpen);
+		}
+		
 		card.addEventListener('keydown', function(e){
 			if(e.key === 'Enter' || e.key === ' '){
-				e.preventDefault(); handleOpen();
+				// Solo interceptar si no es un enlace
+				if (btn.tagName === 'BUTTON') {
+					e.preventDefault(); 
+					handleOpen();
+				}
 			}
 		});
 	});
 
-	closeBtn.addEventListener('click', closeModal);
-	modal.addEventListener('click', function(e){
-		if(e.target === modal) closeModal();
-	});
+	if (closeBtn) {
+		closeBtn.addEventListener('click', closeModal);
+	}
+	
+	if (modal) {
+		modal.addEventListener('click', function(e){
+			if(e.target === modal) closeModal();
+		});
+	}
 	document.addEventListener('keydown', function(e){
 		if(e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false'){
 			closeModal();
@@ -126,6 +157,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 	// Botón Ver detalle: solicitar ubicación específica para consulta de suelo
 	const btnDetalle = document.getElementById('btn-ver-detalle-clima');
+	
 	if (btnDetalle) {
 		btnDetalle.addEventListener('click', async () => {
 			openModal('Detalle de clima y suelo', 'Solicitando acceso a tu ubicación...');
