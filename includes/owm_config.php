@@ -6,5 +6,8 @@
 
 return [
 	'OWM_API_KEY' => 'e3f0790da98e5d2fa495d11bb819e9f1',
+	// Clave de WeatherAPI (opcional, para pruebas del snippet)
+	// NO subir a repos públicos
+	'WEATHERAPI_KEY' => 'ff26c6b8641d423e926224810250810',
 ];
 ?>

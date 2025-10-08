@@ -122,16 +122,22 @@
 		// Nota: evita subir este archivo al repositorio (ver .gitignore).
 		$configPath = __DIR__ . '/../includes/owm_config.php';
 		$owmKey = '';
+        $weatherApiKey = '';
 		if (file_exists($configPath)) {
 			$config = include $configPath;
 			if (is_array($config) && isset($config['OWM_API_KEY'])) {
 				$owmKey = $config['OWM_API_KEY'];
 			}
+            if (is_array($config) && isset($config['WEATHERAPI_KEY'])) {
+                $weatherApiKey = $config['WEATHERAPI_KEY'];
+            }
 		}
 	?>
 	<script>
 		// Expone la API key de OpenWeatherMap al frontend (configurar variable de entorno OWM_API_KEY en el servidor)
 		window.OWM_API_KEY = <?php echo json_encode($owmKey); ?>;
+        // Expone la API key de WeatherAPI si está disponible
+        window.WEATHERAPI_KEY = <?php echo json_encode($weatherApiKey); ?>;
 	</script>
 	<script src="../recursos/js/class.js" defer></script>
 </body>
