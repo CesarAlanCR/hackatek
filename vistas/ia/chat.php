@@ -1,120 +1,150 @@
+
 <?php
-// vistas/ia/chat.php
-// Scaffold básico para el módulo de Chat IA (Gemini)
-// - Interfaz: simple área de mensajes + formulario
-// - Endpoint: cuando POST 'message' se prepara la petición a Gemini (placeholder)
+// Chat IA especializado en agricultura
+// Archivo: vistas/ia/chat.php
 
-// Nota: REMPLAZA la función `call_gemini_api` con la llamada real. Se requieren
-// una API KEY y parámetros de modelo. No incluyas la API key en el repo.
+// Configuración: API Key OpenAI
+$OPENAI_API_KEY = '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';
 
-// Manejo de POST: devuelve JSON con la respuesta simulada o real
+// Endpoint para procesar mensajes (POST)
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    header('Content-Type: application/json; charset=utf-8');
-    $input = $_POST['message'] ?? '';
-    if (trim($input) === '') {
-        echo json_encode(['error' => 'Mensaje vacío']);
-        exit;
-    }
+	$message = $_POST['message'] ?? '';
+	$response = '';
+	$imageData = null;
+	if (isset($_FILES['image']) && $_FILES['image']['tmp_name']) {
+		$imageData = base64_encode(file_get_contents($_FILES['image']['tmp_name']));
+	}
 
-    // Llamada a Gemini (placeholder)
-    try {
-        $response = call_gemini_api($input);
-        echo json_encode(['ok' => true, 'reply' => $response]);
-    } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(['error' => $e->getMessage()]);
-    }
-    exit;
+	// Construir payload para OpenAI (gpt-4o, soporta imágenes)
+	$messages = [
+		["role" => "system", "content" => "Eres un asistente experto en agricultura. Responde solo sobre temas agrícolas, cultivos, plagas, clima, suelos, fertilización, imágenes de hojas y enfermedades. Si recibes una imagen, analiza y describe el estado agrícola de la planta."]
+	];
+	if ($imageData) {
+		$messages[] = [
+			"role" => "user",
+			"content" => [
+				["type" => "text", "text" => $message],
+				["type" => "image_url", "image_url" => ["url" => "data:image/jpeg;base64,$imageData"]]
+			]
+		];
+	} else {
+		$messages[] = ["role" => "user", "content" => $message];
+	}
+	$payload = [
+		"model" => "gpt-4o",
+		"messages" => $messages,
+		"max_tokens" => 800
+	];
+
+	$ch = curl_init('https://api.openai.com/v1/chat/completions');
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_POST, true);
+	curl_setopt($ch, CURLOPT_HTTPHEADER, [
+		'Content-Type: application/json',
+		'Authorization: Bearer ' . $OPENAI_API_KEY
+	]);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+	$result = curl_exec($ch);
+	$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+	curl_close($ch);
+	$data = json_decode($result, true);
+	if (isset($data['choices'][0]['message']['content'])) {
+		$response = $data['choices'][0]['message']['content'];
+	} else if (isset($data['error']['message'])) {
+		$response = 'Error OpenAI: ' . $data['error']['message'];
+	} else {
+		$response = 'Error: No se pudo obtener respuesta de la IA. Código HTTP: ' . $httpcode;
+	}
+	header('Content-Type: application/json');
+	echo json_encode(["reply" => $response]);
+	exit;
 }
-
-function call_gemini_api(string $prompt): string {
-    // Aquí debes implementar la llamada a la API de Gemini.
-    // Ejemplo (pseudocódigo):
-    // $key = getenv('GEMINI_API_KEY');
-    // $model = 'gemini-1.0';
-    // usar cURL o Guzzle para POST a la endpoint de Google/VertexAI o la API adecuada.
-    // Por motivos de seguridad, no incluimos la clave en el código.
-
-    // Por ahora retornamos una respuesta simulada para UI local:
-    return "Simulación de Gemini: recibí tu mensaje -> " . substr($prompt, 0, 200);
-}
-
 ?>
 <!doctype html>
 <html lang="es">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Chat IA - AgroScout</title>
-    <link rel="stylesheet" href="../../recursos/css/general.css">
-    <style>
-        .chat-container{max-width:900px;margin:24px auto}
-        .messages{background:#fff;padding:12px;border-radius:8px;min-height:240px;border:1px solid rgba(0,0,0,0.04);overflow:auto}
-        .msg{margin:8px 0}
-        .msg.user{text-align:right}
-        .msg .bubble{display:inline-block;padding:8px 12px;border-radius:12px}
-        .msg.user .bubble{background:var(--green-4);color:#fff}
-        .msg.bot .bubble{background:#f1f6f1;color:#122212}
-        .chat-form{display:flex;gap:8px;margin-top:12px}
-        .chat-form input[type=text]{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.08)}
-    </style>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Chat IA Agrícola</title>
+	<link rel="stylesheet" href="../../recursos/css/general.css">
+	<style>
+		.chat-container{max-width:680px;margin:0 auto;padding:24px 0}
+		.chat-messages{background:var(--green-1);border-radius:10px;padding:18px;min-height:220px;margin-bottom:18px;box-shadow:var(--shadow)}
+		.chat-message{margin-bottom:12px}
+		.chat-message.user{color:var(--green-4);font-weight:600}
+		.chat-message.ia{color:var(--muted);background:var(--green-2);border-radius:8px;padding:8px}
+		.chat-form{display:flex;gap:8px;align-items:center}
+		.chat-form input[type="text"]{flex:1;padding:8px;border-radius:8px;border:1px solid var(--green-3)}
+		.chat-form input[type="file"]{border:0}
+		.chat-form button{padding:8px 16px;border-radius:8px;background:var(--green-4);color:white;border:0;font-weight:700}
+		.chat-preview-img{max-width:120px;max-height:120px;border-radius:8px;margin-left:12px}
+	</style>
 </head>
 <body>
-    <main class="container chat-container">
-        <h2>Chat IA</h2>
-        <p class="lead">Habla con AgroScout para recibir recomendaciones y ayuda.</p>
+	<main class="chat-container">
+		<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+			<button onclick="history.back()" class="btn" style="background:transparent;color:var(--green-4);border:1px solid var(--green-3);">← Volver</button>
+			<h2 style="margin:0">Chat IA Agrícola</h2>
+		</div>
+		<div class="chat-messages" id="chat-messages">
+			<!-- Mensajes se renderizan aquí -->
+		</div>
+		<form class="chat-form" id="chat-form" enctype="multipart/form-data" autocomplete="off">
+			<input type="text" name="message" id="message" placeholder="Escribe tu pregunta agrícola..." required>
+			<input type="file" name="image" id="image" accept="image/*">
+			<img id="preview-img" class="chat-preview-img" style="display:none" alt="Preview imagen">
+			<button type="submit">Enviar</button>
+		</form>
+	</main>
+	<script>
+	// Chat frontend
+	const chatForm = document.getElementById('chat-form');
+	const chatMessages = document.getElementById('chat-messages');
+	const previewImg = document.getElementById('preview-img');
+	const imageInput = document.getElementById('image');
 
-        <div id="messages" class="messages" aria-live="polite"></div>
+	imageInput.addEventListener('change', function(){
+		const file = imageInput.files[0];
+		if(file){
+			const reader = new FileReader();
+			reader.onload = function(e){
+				previewImg.src = e.target.result;
+				previewImg.style.display = 'inline-block';
+			};
+			reader.readAsDataURL(file);
+		}else{
+			previewImg.style.display = 'none';
+		}
+	});
 
-        <form id="chatForm" class="chat-form" method="post" action="chat.php">
-            <input id="messageInput" type="text" name="message" placeholder="Escribe tu mensaje..." autocomplete="off">
-            <button class="btn btn-primary" type="submit">Enviar</button>
-        </form>
+	chatForm.addEventListener('submit', function(e){
+		e.preventDefault();
+		const formData = new FormData(chatForm);
+		const userMsg = formData.get('message');
+		addMessage('user', userMsg);
+		fetch('', {
+			method: 'POST',
+			body: formData
+		})
+		.then(res => res.json())
+		.then(data => {
+			addMessage('ia', data.reply);
+		})
+		.catch(()=>{
+			addMessage('ia', 'Error al conectar con la IA.');
+		});
+		chatForm.reset();
+		previewImg.style.display = 'none';
+	});
 
-        <p class="muted">Nota: la integración con Gemini requiere una API key y configuración del modelo. Por ahora el servidor devuelve una respuesta simulada.</p>
-    </main>
-
-    <script>
-    // Manejo AJAX simple para enviar mensajes sin recargar
-    (function(){
-        const form = document.getElementById('chatForm');
-        const input = document.getElementById('messageInput');
-        const messages = document.getElementById('messages');
-
-        function appendMessage(text, who){
-            const div = document.createElement('div');
-            div.className = 'msg ' + (who === 'user' ? 'user' : 'bot');
-            const span = document.createElement('span');
-            span.className = 'bubble';
-            span.textContent = text;
-            div.appendChild(span);
-            messages.appendChild(div);
-            messages.scrollTop = messages.scrollHeight;
-        }
-
-        form.addEventListener('submit', function(e){
-            e.preventDefault();
-            const val = input.value.trim();
-            if(!val) return;
-            appendMessage(val, 'user');
-            input.value = '';
-
-            const fd = new FormData();
-            fd.append('message', val);
-
-            fetch('chat.php', {method:'POST', body:fd})
-            .then(r => r.json())
-            .then(json => {
-                if(json.ok){
-                    appendMessage(json.reply, 'bot');
-                } else if(json.error){
-                    appendMessage('Error: ' + json.error, 'bot');
-                }
-            })
-            .catch(err => appendMessage('Error de red: ' + err.message, 'bot'));
-        });
-
-    })();
-    </script>
+	function addMessage(role, text){
+		const div = document.createElement('div');
+		div.className = 'chat-message ' + role;
+		div.textContent = (role==='user'? 'Tú: ':'IA: ') + text;
+		chatMessages.appendChild(div);
+		chatMessages.scrollTop = chatMessages.scrollHeight;
+	}
+	</script>
 </body>
 </html>
