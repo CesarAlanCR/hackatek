@@ -3,8 +3,8 @@
 // Chat IA especializado en agricultura
 // Archivo: vistas/ia/chat.php
 
-// Configuración: API Key OpenAI
-$OPENAI_API_KEY = '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';
+// Configuración: la API key debe establecerse como variable de entorno OPENAI_API_KEY
+$OPENAI_API_KEY = getenv('OPENAI_API_KEY') ?: (isset($_SERVER['OPENAI_API_KEY']) ? $_SERVER['OPENAI_API_KEY'] : null);
 
 // Endpoint para procesar mensajes (POST)
 
