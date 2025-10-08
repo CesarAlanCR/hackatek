@@ -123,54 +123,168 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<title>Chat IA Agrícola</title>
+	<!-- Bootstrap CSS -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-..." crossorigin="anonymous">
 	<link rel="stylesheet" href="../../recursos/css/general.css">
 	<style>
-		.chat-container{max-width:680px;margin:0 auto;padding:24px 0}
-		.chat-messages{background:var(--green-1);border-radius:10px;padding:18px;min-height:220px;margin-bottom:18px;box-shadow:var(--shadow)}
-		.chat-message{margin-bottom:12px}
-		.chat-message.user{color:var(--green-4);font-weight:600}
-		.chat-message.ia{color:var(--muted);background:var(--green-2);border-radius:8px;padding:8px}
-		.chat-form{display:flex;gap:8px;align-items:center}
-		.chat-form input[type="text"]{flex:1;padding:8px;border-radius:8px;border:1px solid var(--green-3)}
-		.chat-form input[type="file"]{border:0}
-		.chat-form button{padding:8px 16px;border-radius:8px;background:var(--green-4);color:white;border:0;font-weight:700}
-		.chat-preview-img{max-width:120px;max-height:120px;border-radius:8px;margin-left:12px}
+		/* Small overrides to integrate with bootstrap */
+		.chat-shell{max-height:calc(100vh - 140px)}
+		.typing-indicator{font-size:0.9rem;color:var(--muted);margin-left:8px}
 	</style>
 </head>
-<body>
-	<main class="chat-container">
-		<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-			<button onclick="history.back()" class="btn" style="background:transparent;color:var(--green-4);border:1px solid var(--green-3);">← Volver</button>
-			<h2 style="margin:0">Chat IA Agrícola</h2>
+<body class="bg-light">
+	<div class="container py-3">
+		<div class="row justify-content-center">
+			<div class="col-12 col-md-10">
+				<div class="card shadow-sm">
+					<div class="card-header d-flex align-items-center">
+						<button onclick="history.back()" class="btn btn-outline-success btn-sm me-3">← Volver</button>
+						<div class="flex-fill text-center">
+							<h5 class="mb-0">Asistente Agrícola</h5>
+						</div>
+						<div id="typing" class="typing-indicator ms-auto" style="display:none">IA está escribiendo...</div>
+					</div>
+					<div class="card-body p-0">
+						<div class="chat-shell d-flex flex-column">
+							<!-- area de mensajes con su propio scroll -->
+							<div class="chat-messages flex-grow-1 overflow-auto p-3" id="chat-messages" aria-live="polite"></div>
+
+							<form class="chat-form border-top" id="chat-form" enctype="multipart/form-data" autocomplete="off">
+								<div class="d-flex align-items-center gap-2 p-3">
+									<textarea name="message" id="message" class="chat-input form-control flex-grow-1 me-2" placeholder="Escribe tu pregunta agrícola..." required aria-label="Mensaje" rows="1" style="height:auto;min-height:44px;max-height:140px;overflow:auto;resize:none"></textarea>
+
+																		<!-- Custom small file button -->
+																		<label for="image" id="image-label" class="btn btn-outline-secondary btn-sm px-2 py-1 d-flex align-items-center justify-content-center" title="Adjuntar imagen">
+																				<!-- nicer inline SVG icon for image -->
+																				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+																					<path d="M14 3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12z" fill-opacity="0" stroke="currentColor" stroke-width="0.5"/>
+																					<path d="M14 3H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zM4.502 9.02a1.5 1.5 0 1 1 2.996 0 1.5 1.5 0 0 1-2.996 0zM2 12l3.5-4.5L9 12h5"/>
+																				</svg>
+																		</label>
+																		<button id="send-btn" type="submit" class="chat-send btn btn-success btn-sm px-3 py-1 d-flex align-items-center justify-content-center">Enviar</button>
+									<input type="file" name="image" id="image" class="d-none" accept="image/*" aria-label="Adjuntar imagen">
+								</div>
+								<div class="px-3 pb-3 d-flex align-items-center gap-3">
+									<img id="preview-img" class="chat-preview-img rounded border" style="display:none;max-width:160px;max-height:120px;object-fit:cover" alt="Preview imagen">
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
-		<div class="chat-messages" id="chat-messages">
-			<!-- Mensajes se renderizan aquí -->
-		</div>
-		<form class="chat-form" id="chat-form" enctype="multipart/form-data" autocomplete="off">
-			<input type="text" name="message" id="message" placeholder="Escribe tu pregunta agrícola..." required>
-			<input type="file" name="image" id="image" accept="image/*">
-			<img id="preview-img" class="chat-preview-img" style="display:none" alt="Preview imagen">
-			<button type="submit">Enviar</button>
-		</form>
-	</main>
+	</div>
+
+	<!-- Bootstrap JS (optional) -->
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-..." crossorigin="anonymous"></script>
 	<script>
-	// Chat frontend
+	// Chat frontend (updated for bootstrap UI)
 	const chatForm = document.getElementById('chat-form');
 	const chatMessages = document.getElementById('chat-messages');
 	const previewImg = document.getElementById('preview-img');
 	const imageInput = document.getElementById('image');
+	const typingEl = document.getElementById('typing');
 
+	// cuando el input cambia (selección por dialogo)
 	imageInput.addEventListener('change', function(){
 		const file = imageInput.files[0];
-		if(file){
-			const reader = new FileReader();
-			reader.onload = function(e){
-				previewImg.src = e.target.result;
-				previewImg.style.display = 'inline-block';
-			};
-			reader.readAsDataURL(file);
-		}else{
-			previewImg.style.display = 'none';
+		handleSelectedFile(file);
+	});
+
+	// etiqueta personalizada abre el selector
+	const imageLabel = document.getElementById('image-label');
+	imageLabel.addEventListener('click', function(e){
+		e.preventDefault();
+		imageInput.click();
+	});
+
+	// Drag & Drop sobre toda el area del chat
+	const chatShell = document.querySelector('.chat-shell');
+	let dragCounter = 0;
+	chatShell.addEventListener('dragenter', (e) => {
+		e.preventDefault();
+		dragCounter++;
+		chatShell.classList.add('border', 'border-secondary', 'bg-white');
+	});
+	chatShell.addEventListener('dragover', (e) => {
+		e.preventDefault();
+	});
+	chatShell.addEventListener('dragleave', (e) => {
+		e.preventDefault();
+		dragCounter--;
+		if (dragCounter === 0) {
+			chatShell.classList.remove('border', 'border-secondary', 'bg-white');
+		}
+	});
+	chatShell.addEventListener('drop', (e) => {
+		e.preventDefault();
+		dragCounter = 0;
+		chatShell.classList.remove('border', 'border-secondary', 'bg-white');
+		const dt = e.dataTransfer;
+		if (!dt || !dt.files || dt.files.length === 0) return;
+		const file = dt.files[0];
+		// solo imágenes
+		if (file.type && file.type.startsWith('image/')) {
+			// adjuntar al input de archivo para que el form lo envíe
+			const dataTransfer = new DataTransfer();
+			dataTransfer.items.add(file);
+			imageInput.files = dataTransfer.files;
+			handleSelectedFile(file);
+		} else {
+			alert('Solo se permiten archivos de imagen.');
+		}
+	});
+
+	function handleSelectedFile(file){
+		if (!file) { previewImg.style.display = 'none'; return; }
+		const reader = new FileReader();
+		reader.onload = function(e){
+			previewImg.src = e.target.result;
+			previewImg.style.display = 'inline-block';
+			// label muestra el nombre del archivo
+			imageLabel.textContent = file.name.length > 20 ? file.name.slice(0,18) + '…' : file.name;
+		};
+		reader.readAsDataURL(file);
+	}
+
+	// Auto-resize textarea: crece hasta max-height y luego muestra scroll interno
+	const inputEl = document.getElementById('message');
+	const MAX_HEIGHT = 140; // px
+	const imageLabelEl = document.getElementById('image-label');
+	const sendBtn = document.getElementById('send-btn');
+	function resizeTextarea(el){
+		el.style.height = 'auto';
+		const newHeight = Math.min(el.scrollHeight, MAX_HEIGHT);
+		el.style.height = newHeight + 'px';
+		// si excede max, mantener scroll interno
+		if (el.scrollHeight > MAX_HEIGHT) {
+			el.style.overflow = 'auto';
+		} else {
+			el.style.overflow = 'hidden';
+		}
+		// ajustar altura de botones para que coincida con el textarea
+		try {
+			if (imageLabelEl) {
+				imageLabelEl.style.height = el.style.height;
+			}
+			if (sendBtn) {
+				sendBtn.style.height = el.style.height;
+			}
+		} catch (err) {
+			// ignore
+		}
+	}
+	// inicial
+	resizeTextarea(inputEl);
+	inputEl.addEventListener('input', function(e){
+		resizeTextarea(e.target);
+	});
+
+	// Enviar con Enter (Shift+Enter para nueva línea)
+	inputEl.addEventListener('keydown', function(e){
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+			chatForm.requestSubmit();
 		}
 	});
 
@@ -178,28 +292,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		e.preventDefault();
 		const formData = new FormData(chatForm);
 		const userMsg = formData.get('message');
-		addMessage('user', userMsg);
+		// if there is a selected file, pass its preview as image
+		const file = imageInput.files[0];
+		const userPreview = previewImg && previewImg.style.display !== 'none' ? previewImg.src : null;
+		addMessage('user', userMsg, userPreview);
+		// show typing indicator
+		typingEl.style.display = 'inline-block';
 		fetch('', {
 			method: 'POST',
 			body: formData
 		})
 		.then(res => res.json())
 		.then(data => {
+			typingEl.style.display = 'none';
 			addMessage('ia', data.reply);
 		})
 		.catch(()=>{
+			typingEl.style.display = 'none';
 			addMessage('ia', 'Error al conectar con la IA.');
 		});
 		chatForm.reset();
+		// limpiar label y preview
+		imageLabel.textContent = '📷 Adjuntar';
 		previewImg.style.display = 'none';
 	});
 
-	function addMessage(role, text){
-		const div = document.createElement('div');
-		div.className = 'chat-message ' + role;
-		div.textContent = (role==='user'? 'Tú: ':'IA: ') + text;
-		chatMessages.appendChild(div);
-		chatMessages.scrollTop = chatMessages.scrollHeight;
+	function addMessage(role, text, imageSrc){
+		const wrapper = document.createElement('div');
+		wrapper.className = role === 'user' ? 'd-flex justify-content-end' : 'd-flex justify-content-start';
+		const bubble = document.createElement('div');
+		bubble.className = 'msg ' + role + ' p-2';
+		const safeText = String(text).replace(/\n/g, '<br>');
+		let inner = (role==='user'? '<strong>Tú</strong><br>' : '<strong>IA</strong><br>') + safeText;
+		if (imageSrc) {
+			inner += '<div class="mt-2"><img src="' + imageSrc + '" style="max-width:220px;max-height:160px;object-fit:cover;border-radius:6px;border:1px solid rgba(0,0,0,0.06)"></div>';
+		}
+		bubble.innerHTML = inner;
+		wrapper.appendChild(bubble);
+		chatMessages.appendChild(wrapper);
+		chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
 	}
 	</script>
 </body>
