@@ -10,6 +10,13 @@
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<title>Hackatek - Gestión de Cultivos</title>
 	<link rel="stylesheet" href="../recursos/css/general.css">
+	<!-- Leaflet CSS (mapas) -->
+	<link
+		rel="stylesheet"
+		href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+		integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+		crossorigin=""
+	>
 </head>
 <body>
 	<!-- Header removed by user request -->
@@ -24,7 +31,8 @@
 		<section class="preview-clima">
 			<div class="preview-grid">
 				<div class="preview-image card">
-					<img src="../recursos/img/sample-field.jpg" alt="Campo de cultivo ejemplo" onerror="this.style.display='none'">
+					<!-- Contenedor del mapa interactivo -->
+					<div id="weather-map" aria-label="Mapa de clima y ubicación"></div>
 				</div>
 				<div class="preview-info card">
 					<h3>Clima</h3>
@@ -102,7 +110,18 @@
 			<div id="modal-body"></div>
 		</div>
 	</div>
-
+	<!-- Leaflet JS (mapas) -->
+	<script
+		src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+		integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+		crossorigin=""
+		defer
+	></script>
+	<?php $owmKey = getenv('OWM_API_KEY') ?: ''; ?>
+	<script>
+		// Expone la API key de OpenWeatherMap al frontend (configurar variable de entorno OWM_API_KEY en el servidor)
+		window.OWM_API_KEY = <?php echo json_encode($owmKey); ?>;
+	</script>
 	<script src="../recursos/js/class.js" defer></script>
 </body>
 </html>
