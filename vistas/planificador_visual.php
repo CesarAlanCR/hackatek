@@ -549,7 +549,7 @@ small{color:var(--text-muted);}
     <div class="page-card" style="margin-top:18px;">
         <div class="map-header" style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:rgba(30,41,54,0.6);border-bottom:1px solid var(--border);">
             <a href="index.php" class="btn-back">← Volver</a>
-            <h5 style="margin:0;color:var(--accent);font-size:1.4rem;font-weight:700;flex:1;text-align:center;letter-spacing:-0.5px;">Recomendación Inteligente (SAGRO-IA)</h5>
+            <h5 style="margin:0;color:var(--accent);font-size:1.4rem;font-weight:700;flex:1;text-align:center;letter-spacing:-0.5px;">Recomendación Inteligente</h5>
             <div style="width:100px"></div>
         </div>
         <section class="card in-view">
