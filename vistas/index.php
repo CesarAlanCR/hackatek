@@ -51,9 +51,9 @@
 
 		<section class="modules" aria-label="Módulos principales">
 			<article id="modulo-clima" class="card module-card" data-module="Clima" tabindex="0">
-				<h3>Imagenes</h3>
-				<p>IA que reconoce imagenes de hojas afectadas para ver que pasa</p>
-				<button class="btn btn-primary">Abrir</button>
+				<h3>Planificador virtual</h3>
+				<p>Planifica tus cultivos como un experto</p>
+				<a href="planificador_visual.php" class="btn btn-primary" aria-label="Abrir Planificador virtual">Abrir</a>
 			</article>
 
 			<article id="modulo-mercado" class="card module-card" data-module="Mercado" tabindex="0">
