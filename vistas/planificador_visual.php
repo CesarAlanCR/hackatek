@@ -152,27 +152,105 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
 .visual-progress{height:24px;background:rgba(255,255,255,.06);border-radius:14px;overflow:hidden;position:relative;margin-top:4px;}
 .visual-progress .bar{height:100%;width:0;background:linear-gradient(90deg,var(--green-4),var(--accent));transition:width .9s cubic-bezier(.2,.8,.25,1);}
 .visual-progress .label{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:.55rem;font-weight:600;color:var(--text-primary);line-height:24px;}
-@media (max-width:760px){.visual-box{min-width:100%;}.detalle-grid{grid-template-columns:1fr;}.hero-dynamic{padding:30px 22px;}}
+@media (max-width:760px){.visual-box{min-width:100%;}.detalle-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Mapa - Cuerpos de agua</title>
+    <link rel="stylesheet" href="../recursos/css/general.css">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <style>
+        .map-container{
+            background:var(--bg-card);
+            border-radius:var(--radius-lg);
+            overflow:hidden;
+            box-shadow:var(--shadow-lg);
+            border:1px solid var(--border);
+            animation:scaleIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes scaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+        .map-header{
+            padding:20px 24px;
+            background:rgba(30, 41, 54, 0.6);
+            backdrop-filter:blur(10px);
+            border-bottom:1px solid var(--border);
+            display:flex;
+            align-items:center;
+            gap:16px;
+        }
+        .map-header h5{
+            margin:0;
+            color:var(--accent);
+            font-size:1.4rem;
+            font-weight:700;
+            flex:1;
+            text-align:center;
+            letter-spacing:-0.5px;
+        }
+        .btn-back{
+            background:rgba(124, 179, 66, 0.15);
+            border:1px solid var(--border-hover);
+            color:var(--accent);
+            padding:10px 20px;
+            border-radius:var(--radius);
+            font-weight:600;
+            text-decoration:none;
+            transition:var(--transition-fast);
+        }
+        .btn-back:hover{
+            background:var(--accent);
+            color:white;
+            transform:translateX(-4px);
+        }
+        #map{width:100%;height:75vh;background:var(--bg-secondary)}
+        .leaflet-popup-content-wrapper{
+            background:var(--bg-card);
+            color:var(--text-primary);
+            border-radius:var(--radius);
+            box-shadow:var(--shadow-lg);
+        }
+        .leaflet-popup-tip{background:var(--bg-card)}
+        .c1, .c2{
+            background:var(--accent);
+            border:2px solid var(--bg-card);
+            box-shadow:0 0 12px var(--green-glow);
+            border-radius:50%;
+        }
+        .c2{background:var(--green-3)}
+    </style>
+</head>
 <main class="container">
-<section class="hero-dynamic">
-    <div>
-        <span class="badge-hero">MANZANA</span>
-        <h1>Planificador Visual de Cosecha</h1>
-        <p class="intro">Selecciona variedad y fecha de floración para estimar ventana óptima, vida de anaquel y estado de horas frío. (Indicador de % éxito removido a solicitud).</p>
-    </div>
-</section>
+    <section class="hero" style="padding:50px 0 30px;">
+        <h2 style="margin-bottom:18px;">Planificador Visual de Cosecha</h2>
+            </section>
 <div class="panel">
     <form method="POST">
         <label for="cultivo">Cultivo</label>
-        <select name="cultivo" id="cultivo" disabled>
+        <select name="cultivo" id="cultivo">
             <option value="manzana" selected>Manzana</option>
+            <option value="aguacate" disabled>Aguacate (próximo)</option>
+            <option value="alfalfa" disabled>Alfalfa (próximo)</option>
+            <option value="avena" disabled>Avena (próximo)</option>
+            <option value="calabaza" disabled>Calabaza (próximo)</option>
+            <option value="cana_de_azucar" disabled>Caña de Azúcar (próximo)</option>
+            <option value="cebolla" disabled>Cebolla (próximo)</option>
+            <option value="chile_jalapeno" disabled>Chile Jalapeño (próximo)</option>
             <option value="frijol" disabled>Frijol (próximo)</option>
+            <option value="maiz" disabled>Maíz (próximo)</option>
+            <option value="papa" disabled>Papa (próximo)</option>
+            <option value="tomate" disabled>Tomate (próximo)</option>
             <option value="trigo" disabled>Trigo (próximo)</option>
+            <option value="uva" disabled>Uva (próximo)</option>
         </select>
-        <small style="display:block;color:#555;margin-top:4px;">Solo manzana habilitada.</small>
+        <small style="display:block;color:var(--text-muted);margin-top:4px;">Solo Manzana disponible por ahora. Los demás cultivos están en desarrollo.</small>
         <label for="variedad_id">Variedad</label>
         <select name="variedad_id" id="variedad_id" required>
             <option value="">-- Selecciona variedad --</option>
@@ -308,6 +386,40 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
 <div class="panel">
     <h2>Visualizaciones simplificadas</h2>
     <div class="chart-wrapper">
+        <!-- Nuevo panel: Desglose de Parámetros Clave -->
+        <div class="panel" style="flex:1 1 100%;background:var(--bg-card-hover);border:1px solid var(--border);margin-bottom:28px;">
+            <h2 style="margin-top:0;font-size:1rem;">Desglose de Parámetros Clave</h2>
+            <p style="font-size:.65rem;color:var(--text-secondary);margin-top:4px;">Visual comparativa de frío, ajuste aplicado y vida de anaquel para interpretación rápida.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:16px;">
+                <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;">
+                    <h3 style="margin:0 0 8px;font-size:.7rem;letter-spacing:.5px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Horas Frío</h3>
+                    <div style="font-size:.6rem;color:var(--text-muted);margin-bottom:6px;">Acumuladas vs requeridas</div>
+                    <div class="visual-progress" style="height:26px;">
+                        <div class="bar" id="barFrioAvz"></div>
+                        <div class="label" id="labelFrioAvz">0%</div>
+                    </div>
+                    <small style="display:block;margin-top:6px;font-size:.55rem;color:var(--text-secondary);">Valor: <strong><?= htmlspecialchars((string)$resultado['horas_frio_acumuladas']) ?></strong> / <?= htmlspecialchars((string)$resultado['horas_frio_requeridas']) ?> (<?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%)</small>
+                </div>
+                <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;">
+                    <h3 style="margin:0 0 8px;font-size:.7rem;letter-spacing:.5px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Ajuste por Frío</h3>
+                    <div style="font-size:.6rem;color:var(--text-muted);margin-bottom:6px;">Días añadidos al ciclo</div>
+                    <div class="visual-progress" style="height:26px;">
+                        <div class="bar" id="barAjusteAvz" style="background:linear-gradient(90deg,#ffa726,#ffcc80);"></div>
+                        <div class="label" id="labelAjusteAvz">0 días</div>
+                    </div>
+                    <small style="display:block;margin-top:6px;font-size:.55rem;color:var(--text-secondary);">Ajuste aplicado: <strong><?= htmlspecialchars((string)$resultado['ajuste_aplicado_dias']) ?></strong> días</small>
+                </div>
+                <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;">
+                    <h3 style="margin:0 0 8px;font-size:.7rem;letter-spacing:.5px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Vida de Anaquel</h3>
+                    <div style="font-size:.6rem;color:var(--text-muted);margin-bottom:6px;">Duración estimada post-cosecha</div>
+                    <div class="visual-progress" style="height:26px;">
+                        <div class="bar" id="barAnaquelAvz" style="background:linear-gradient(90deg,#ff9800,#ffb74d);"></div>
+                        <div class="label" id="labelAnaquelAvz">0 días</div>
+                    </div>
+                    <small style="display:block;margin-top:6px;font-size:.55rem;color:var(--text-secondary);">Vida estimada: <strong><?= htmlspecialchars((string)$resultado['vida_anaquel_dias']) ?></strong> días • Límite: <?= htmlspecialchars($resultado['fecha_limite_anaquel']) ?></small>
+                </div>
+            </div>
+        </div>
         <div class="chart-box" aria-label="Progreso de horas frío" role="group">
             <h4>Avance de Horas Frío</h4>
             <div class="progress-wrap" title="Porcentaje de horas frío acumuladas sobre lo requerido">
@@ -404,6 +516,41 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
             btnToggle.textContent = visible? 'Ver detalles avanzados':'Ocultar detalles avanzados';
             if(!visible){
                 document.querySelectorAll('.t-step').forEach((st,i)=>{setTimeout(()=>st.classList.add('active'), i*160);});
+                // Animar barras avanzadas
+                const barFrioAvz = document.getElementById('barFrioAvz');
+                const labelFrioAvz = document.getElementById('labelFrioAvz');
+                if(barFrioAvz && labelFrioAvz){
+                    const porcVal = Math.min(100, Math.max(0, porcentajeFrio));
+                    setTimeout(()=>{
+                        barFrioAvz.style.width = porcVal + '%';
+                        labelFrioAvz.textContent = porcVal.toFixed(1) + '%';
+                        if (porcVal < 80) { barFrioAvz.style.background = 'linear-gradient(90deg,#c62828,#ef5350)'; }
+                        else if (porcVal < 90) { barFrioAvz.style.background = 'linear-gradient(90deg,#f9a825,#fff176)'; }
+                    }, 200);
+                }
+                const barAjusteAvz = document.getElementById('barAjusteAvz');
+                const labelAjusteAvz = document.getElementById('labelAjusteAvz');
+                if(barAjusteAvz && labelAjusteAvz){
+                    const ajusteDias = <?= json_encode($resultado['ajuste_aplicado_dias'] ?? 0) ?>;
+                    // Escala ajuste: suponemos 0-10 días como rango máximo típico
+                    const ajustePct = Math.min(100, (ajusteDias/10)*100);
+                    setTimeout(()=>{
+                        barAjusteAvz.style.width = ajustePct + '%';
+                        labelAjusteAvz.textContent = ajusteDias + ' días';
+                        if(ajusteDias === 0){ barAjusteAvz.style.background='linear-gradient(90deg,var(--green-4),var(--accent))'; }
+                    }, 260);
+                }
+                const barAnaquelAvz = document.getElementById('barAnaquelAvz');
+                const labelAnaquelAvz = document.getElementById('labelAnaquelAvz');
+                if(barAnaquelAvz && labelAnaquelAvz){
+                    const vidaDias = vidaAnaquel || 0;
+                    const maxRefAvz = 60; // misma referencia que panel simple
+                    const anaquelPct = Math.min(100,(vidaDias/maxRefAvz)*100);
+                    setTimeout(()=>{
+                        barAnaquelAvz.style.width = anaquelPct + '%';
+                        labelAnaquelAvz.textContent = vidaDias + ' días';
+                    }, 300);
+                }
             }
         });
     }
@@ -473,5 +620,10 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
 </script>
 <?php endif; ?>
 </main>
+<footer class="site-footer">
+    <div class="container">
+        <small>© <?= date('Y') ?> Hackatek - Proyecto de ejemplo</small>
+    </div>
+</footer>
 </body>
 </html>
