@@ -150,6 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<title>Chat IA Agrícola</title>
 	<link rel="stylesheet" href="../../recursos/css/general.css">
+	<link rel="icon" type="image/png" href="../logo.png">
 	<style>
 		.chat-container{
 			background:var(--bg-card);

@@ -196,6 +196,7 @@ $recosTop = array_slice($recos, 0, 10);
 <meta charset="UTF-8" />
 <title>Planificador Visual de Cosecha</title>
 <link rel="stylesheet" href="../recursos/css/general.css" />
+<link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 /* Page card styles already in general.css */

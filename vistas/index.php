@@ -104,7 +104,7 @@
 
 	<footer class="site-footer">
 		<div class="container">
-			<small>© <?php echo date('Y'); ?> Hackatek - Proyecto de ejemplo</small>
+			<small>© <?php echo date('Y'); ?> Hackatek - Proyecto de OptiLife</small>
 		</div>
 	</footer>
 
