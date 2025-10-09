@@ -104,9 +104,9 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
           <label>
             Área general (ha, opcional)
             <input type="number" step="0.01" min="0" name="area_ha" id="area_ha" placeholder="Ej. 5">
-            <small class="hint">Si no capturas área por insumo, se usa esta como valor por defecto.</small>
-          </label>
             <small class="hint">Esta área se aplica a todos los insumos seleccionados.</small>
+          </label>
+            
         </div>
         <div class="result-box" id="resultados" aria-live="polite">
           <div id="results-list" class="results-list" style="display:contents;"></div>
@@ -151,8 +151,7 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       return all;
     }
 
-    // Estado de áreas específicas por insumo (id -> ha)
-    const areas = {};
+  // Sin áreas por insumo; solo se usa el área global
 
     // Sin mapeo de colores: todo se muestra en blanco
 
@@ -165,7 +164,7 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
     }
 
     function buildCard(data){
-      const { id, nombre, dosis, unidad, ha, cantidad, costo } = data;
+      const { id, nombre, dosis, unidad, cantidad, costo } = data;
       const card = document.createElement('div');
       card.className = 'result accent insumo-card';
       // Mantener fondo y borde por CSS (blanco)
@@ -176,10 +175,6 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
             <div style="font-weight:700;color:#2f6138;font-size:.85rem">Dosis por hectárea</div>
             <div>${fmt(dosis)} ${unidad}</div>
           </div>
-          <label style="text-align:left">
-            Área (ha)
-            <input type="number" step="0.01" min="0" class="area-insumo-input" data-insumo-id="${id}" value="${isFinite(ha) && ha>0 ? ha : ''}" placeholder="ej. 5" style="width:100%">
-          </label>
           <div style="text-align:left">
             <div style="font-weight:700;color:#2f6138;font-size:.85rem">Necesitas</div>
             <div>${isFinite(cantidad) ? fmt(cantidad) : '—'} ${isFinite(cantidad) ? unidadBasica(unidad) : ''}</div>
@@ -190,13 +185,6 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
           </div>
         </div>
       `;
-      // Listener para área específica por insumo
-      const input = card.querySelector('.area-insumo-input');
-      input.addEventListener('input', () => {
-        const v = parseFloat(input.value);
-        if (isFinite(v) && v > 0) areas[id] = v; else delete areas[id];
-        renderResults();
-      });
       return card;
     }
 
@@ -210,23 +198,17 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       const opts = getSelectedOptions();
       if (opts.length === 0) return;
 
-      // Prune áreas de insumos ya no seleccionados
-      const selectedIds = new Set(opts.map(o => o.value));
-      Object.keys(areas).forEach(k => { if (!selectedIds.has(k)) delete areas[k]; });
-
       let subtotal = 0;
       opts.forEach(opt => {
         const dosis = parseFloat(opt.dataset.dosis || '0') || 0;
         const precio = parseFloat(opt.dataset.precio || '0') || 0;
         const unidad = opt.dataset.unidad || '';
-        // Sin color por tipo
         const id = opt.value;
         const nombre = opt.textContent.split('(')[0].trim();
-        const haLocal = (isFinite(areas[id]) && areas[id] > 0) ? areas[id] : (isFinite(haGlobal) && haGlobal > 0 ? haGlobal : NaN);
-        const cantidad = isFinite(haLocal) ? (dosis * haLocal) : NaN;
+        const cantidad = (isFinite(haGlobal) && haGlobal > 0) ? (dosis * haGlobal) : NaN;
         const costo = isFinite(cantidad) ? (cantidad * precio) : NaN;
         if (isFinite(costo)) subtotal += costo;
-        const card = buildCard({ id, nombre, dosis, unidad, ha: haLocal, cantidad, costo });
+        const card = buildCard({ id, nombre, dosis, unidad, cantidad, costo });
         resultsList.appendChild(card);
       });
 
