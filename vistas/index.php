@@ -23,8 +23,8 @@
 
 	<main class="container">
 		<section class="hero">
-			<h2>Bienvenido a tu panel de cultivos</h2>
-			<p class="lead">Monitorea, planifica y actúa para mejorar el rendimiento de tus cultivos. Interfaz inicial con módulos para comenzar.</p>
+			<h2>OptiLife</h2>
+			<p class="lead">Monitorea, planifica y actúa para mejorar el rendimiento de tus cultivos.</p>
 		</section>
 
 	
