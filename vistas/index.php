@@ -7,6 +7,8 @@
 <html lang="es">
 <head>
 	<meta charset="utf-8">
+	<link rel="icon" type="image/png" href="logo.png">
+
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<title>Hackatek - Gestión de Cultivos</title>
 	<link rel="stylesheet" href="../recursos/css/general.css">
