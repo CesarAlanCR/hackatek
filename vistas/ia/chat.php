@@ -32,6 +32,14 @@ $OPENAI_API_KEY = getenv('OPENAI_API_KEY') ?: getenv('OPENAI_APIKEY') ?: null;
 
 // Nota: para desarrollo local también puedes usar vlucas/phpdotenv si prefieres.
 
+// Recibir parámetros de contexto de ubicación (desde GET)
+$clima = $_GET['clima'] ?? '';
+$lat = $_GET['lat'] ?? '';
+$lon = $_GET['lon'] ?? '';
+$suelo = $_GET['suelo'] ?? '';
+$estado = $_GET['estado'] ?? '';
+$temporada = $_GET['temporada'] ?? '';
+
 // Endpoint para procesar mensajes (POST)
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -63,6 +71,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 	// Construir payload para OpenAI (gpt-4o, soporta imágenes)
 	$system_prompt = "Eres un asistente experto en agricultura. Responde solo sobre temas agrícolas, cultivos, plagas, clima, suelos, fertilización, imágenes de hojas y enfermedades. Si recibes una imagen, analiza y describe el estado agrícola de la planta.";
+	
+	// Añadir contexto de ubicación del usuario (si está disponible)
+	if ($estado || $clima || $suelo || $temporada) {
+		$system_prompt .= "\n\nContexto del usuario:";
+		if ($estado) $system_prompt .= "\n- Estado: $estado";
+		if ($clima) $system_prompt .= "\n- Clima actual: $clima";
+		if ($suelo) $system_prompt .= "\n- Tipo de suelo: $suelo";
+		if ($temporada) $system_prompt .= "\n- Temporada: $temporada";
+		if ($lat && $lon) $system_prompt .= "\n- Coordenadas: $lat, $lon";
+		$system_prompt .= "\n\nUsa esta información para personalizar tus recomendaciones agrícolas según las condiciones locales del usuario.";
+	}
+	
 	if ($rag_context) {
 		$system_prompt .= "\n\n" . $rag_context;
 	}

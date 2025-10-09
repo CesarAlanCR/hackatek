@@ -83,7 +83,7 @@
 			<article id="modulo-chat-ia" class="card module-card" data-module="Chat IA" tabindex="0">
 				<h3>Chat IA</h3>
 				<p>Asistente para recomendaciones y diagnósticos.</p>
-				<a href="ia/chat.php" class="btn btn-primary">Abrir</a>
+				<a href="#" id="link-chat-ia" class="btn btn-primary">Abrir</a>
 			</article>
 
 			<article id="modulo-exportacion" class="card module-card" data-module="Cuerpos de agua" tabindex="0">
@@ -234,6 +234,17 @@ document.getElementById('planificador-link').addEventListener('click', async fun
 		.map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
 		.join('&');
 	window.location.href = `planificador_visual.php?${qs}`;
+});
+
+// Listener para el chat IA: pasa el mismo contexto de ubicación
+document.getElementById('link-chat-ia').addEventListener('click', function(e) {
+	e.preventDefault();
+	const params = getPlanificadorParams();
+	const qs = Object.entries(params)
+		.filter(([k,v]) => v !== '')
+		.map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+		.join('&');
+	window.location.href = `ia/chat.php?${qs}`;
 });
 </script>
 </body>
