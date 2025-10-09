@@ -99,7 +99,7 @@ try {
     $mysqli = conectar_bd();
     
     // Obtener cultivos de la base de datos
-    $query = "SELECT id, nombre, clima, t_min, t_max, epoca_siembra, suelo, estados, recomendaciones 
+    $query = "SELECT id, nombre, clima, t_min, t_max, epoca_siembra, dias_germinacion, dias_caducidad, recomendaciones, suelo, estados 
               FROM productos 
               ORDER BY nombre";
     
@@ -486,6 +486,146 @@ small{color:var(--text-muted);}
     color: var(--text-primary);
     font-weight: 600;
 }
+
+/* Estilos para el cronograma del cultivo */
+.cycle-chart {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.cycle-chart h5 {
+    margin: 0 0 16px 0;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.timeline {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 0 20px;
+    position: relative;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50px;
+    right: 50px;
+    height: 2px;
+    background: var(--border);
+    z-index: 1;
+}
+
+.timeline-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.timeline-marker {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.timeline-content {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    max-width: 120px;
+}
+
+.timeline-content strong {
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.progress-bars {
+    margin-top: 16px;
+}
+
+.progress-item {
+    margin-bottom: 12px;
+}
+
+.progress-item label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.germination-bar {
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+}
+
+.preservation-bar {
+    background: linear-gradient(90deg, #2196F3, #03A9F4);
+}
+
+.progress-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-left: 8px;
+}
+
+@media (max-width: 600px) {
+    .timeline {
+        flex-direction: column;
+        gap: 16px;
+        padding: 0;
+    }
+    
+    .timeline::before {
+        display: none;
+    }
+    
+    .timeline-item {
+        flex-direction: row;
+        text-align: left;
+    }
+    
+    .timeline-marker {
+        margin-right: 12px;
+        margin-bottom: 0;
+    }
+    
+    .timeline-content {
+        max-width: none;
+        text-align: left;
+    }
+}
 .explicacion{font-size:12.5px;color:var(--text-secondary);margin-top:10px;}
 
 /* Special boxes */
@@ -640,6 +780,10 @@ const cultivosData = {
             epoca: <?= json_encode($cultivo['epoca_siembra']) ?>,
             informacion: "Consulta las recomendaciones específicas para tu región"
         },
+        ciclo: {
+            diasGerminacion: <?= json_encode($cultivo['dias_germinacion']) ?>,
+            diasCaducidad: <?= json_encode($cultivo['dias_caducidad']) ?>
+        },
         cuidados: [
             <?= json_encode($cultivo['recomendaciones'] ?? 'Seguir las prácticas agrícolas recomendadas para la región') ?>
         ]
@@ -681,14 +825,49 @@ function mostrarModal(producto) {
         </div>
         
         <div class="detail-item">
-            <h4>🔧 Cuidados y Recomendaciones</h4>
-            <ul>
-                ${Array.isArray(data.cuidados) ? 
-                    data.cuidados.map(cuidado => `<li>${cuidado}</li>`).join('') :
-                    `<li>${data.cuidados}</li>`
-                }
-            </ul>
+            <h4>⏱️ Ciclo de Cultivo</h4>
+            <p><strong>Días para germinación:</strong> ${data.ciclo.diasGerminacion} días</p>
+            <p><strong>Días de vida útil:</strong> ${data.ciclo.diasCaducidad} días</p>
+            
+            <div class="cycle-chart">
+                <h5>📊 Cronograma del Cultivo</h5>
+                <div class="timeline">
+                    <div class="timeline-item germination">
+                        <div class="timeline-marker">🌱</div>
+                        <div class="timeline-content">
+                            <strong>Germinación</strong><br>
+                            ${data.ciclo.diasGerminacion} días
+                        </div>
+                    </div>
+                    <div class="timeline-item harvest">
+                        <div class="timeline-marker">🌾</div>
+                        <div class="timeline-content">
+                            <strong>Vida Útil</strong><br>
+                            ${data.ciclo.diasCaducidad} días después de cosecha
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="progress-bars">
+                    <div class="progress-item">
+                        <label>Tiempo de germinación relativo:</label>
+                        <div class="progress-bar">
+                            <div class="progress-fill germination-bar" style="width: ${Math.min((data.ciclo.diasGerminacion / 365) * 100, 100)}%"></div>
+                        </div>
+                        <span class="progress-text">${data.ciclo.diasGerminacion} días</span>
+                    </div>
+                    <div class="progress-item">
+                        <label>Tiempo de conservación relativo:</label>
+                        <div class="progress-bar">
+                            <div class="progress-fill preservation-bar" style="width: ${Math.min((data.ciclo.diasCaducidad / 180) * 100, 100)}%"></div>
+                        </div>
+                        <span class="progress-text">${data.ciclo.diasCaducidad} días</span>
+                    </div>
+                </div>
+            </div>
         </div>
+        
+        
     `;
     
     document.getElementById('modalDetalles').style.display = 'flex';
