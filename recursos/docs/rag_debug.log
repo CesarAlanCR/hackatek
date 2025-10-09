@@ -1,0 +1,5 @@
+[2025-10-09T01:47:38+02:00] CMD: python "C:\xampp\htdocs\hackatek/recursos/docs/query_rag.py" "CLIMA Y SUELOS de la manzana" 2>&1
+OUTPUT:
+no se encontró Python; ejecutar sin argumentos para instalar desde el Microsoft Store o deshabilitar este acceso directo desde Configuración > Aplicaciones > Configuración avanzada de aplicaciones > Alias de ejecución de aplicaciones.
+
+---
