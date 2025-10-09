@@ -75,27 +75,7 @@
 			</article>
 		</section>
 
-		<section class="quick-stats">
-			<h3>Resumen rápido</h3>
-			<div class="stats-grid">
-				<div class="stat">
-					<strong>12</strong>
-					<span>Parcelas activas</span>
-				</div>
-				<div class="stat">
-					<strong>3</strong>
-					<span>Alertas hoy</span>
-				</div>
-				<div class="stat">
-					<strong>24%</strong>
-					<span>Agua usada / meta</span>
-				</div>
-				<div class="stat">
-					<strong>5</strong>
-					<span>Tareas pendientes</span>
-				</div>
-			</div>
-		</section>
+		
 	</main>
 
 	<footer class="site-footer">
@@ -108,8 +88,12 @@
 	<div id="module-modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modal-title">
 		<div class="modal-content">
 			<button class="modal-close" aria-label="Cerrar">×</button>
-			<h3 id="modal-title"></h3>
-			<div id="modal-body"></div>
+			<h3 id="modal-title" class="modal-title"></h3>
+			<div id="modal-body" class="modal-body"></div>
+			<div class="modal-footer">
+				<button class="btn" id="modal-cancel">Cerrar</button>
+				<button class="btn btn-primary" id="modal-action">Aceptar</button>
+			</div>
 		</div>
 	</div>
 	<!-- Leaflet JS (mapas) -->
@@ -152,5 +136,66 @@
 	</script>
 	<script src="../recursos/js/class.js" defer></script>
 	<script src="../recursos/js/animations.js" defer></script>
+	<script>
+	// Modal behavior: open/close, populate content, accessibility helpers
+	(function(){
+		const modal = document.getElementById('module-modal');
+		const modalContent = modal.querySelector('.modal-content');
+		const btnClose = modal.querySelector('.modal-close');
+		const btnCancel = document.getElementById('modal-cancel');
+		const btnAction = document.getElementById('modal-action');
+		const titleEl = document.getElementById('modal-title');
+		const bodyEl = document.getElementById('modal-body');
+		let lastFocused = null;
+
+		function openModal(title, htmlContent, actionLabel, actionHandler){
+			lastFocused = document.activeElement;
+			titleEl.textContent = title || '';
+			bodyEl.innerHTML = htmlContent || '';
+			btnAction.textContent = actionLabel || 'Aceptar';
+			btnAction.onclick = function(e){ if (typeof actionHandler === 'function') actionHandler(e); closeModal(); };
+			modal.setAttribute('aria-hidden', 'false');
+			setTimeout(()=> modalContent.focus(), 50);
+			// lock scroll on body
+			document.documentElement.style.overflow = 'hidden';
+		}
+
+		function closeModal(){
+			modal.setAttribute('aria-hidden', 'true');
+			// restore focus
+			document.documentElement.style.overflow = '';
+			if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+		}
+
+		// close handlers
+		btnClose.addEventListener('click', closeModal);
+		btnCancel.addEventListener('click', closeModal);
+		modal.addEventListener('click', function(e){
+			if (e.target === modal) closeModal(); // backdrop click
+		});
+		document.addEventListener('keydown', function(e){
+			if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') closeModal();
+		});
+
+		// Wire climate detail button
+		const climaBtn = document.getElementById('btn-ver-detalle-clima');
+		if (climaBtn){
+			climaBtn.addEventListener('click', function(){
+				openModal('Detalle del clima', '<p>Información meteorológica extendida, imágenes satelitales y análisis de cultivos.</p>');
+			});
+		}
+
+		// Wire module buttons to show a simple info modal
+		document.querySelectorAll('.module-card .btn').forEach(btn => {
+			btn.addEventListener('click', function(e){
+				e.preventDefault();
+				const card = btn.closest('.module-card');
+				const title = card ? (card.querySelector('h3') ? card.querySelector('h3').textContent : 'Detalle') : 'Detalle';
+				const desc = card ? (card.querySelector('p') ? card.querySelector('p').innerHTML : '') : '';
+				openModal(title, '<div>' + desc + '</div>');
+			});
+		});
+	})();
+	</script>
 </body>
 </html>
