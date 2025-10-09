@@ -100,6 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     transform:translateX(-4px);
 }
 
+/* Ensure no unwanted white shadow/overlay (fix for bad sheen) */
+.btn-back{box-shadow:none;text-shadow:none;position:relative;z-index:3}
+.btn-back::before,.btn-back::after{display:none !important;content:none !important}
+
 /* Hero optimized for page-card structure */
 .hero-dynamic{
     display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:30px;
