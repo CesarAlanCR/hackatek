@@ -71,32 +71,12 @@
 			</article>
 		</section>
 
-		<section class="quick-stats">
-			<h3>Resumen rápido</h3>
-			<div class="stats-grid">
-				<div class="stat">
-					<strong>12</strong>
-					<span>Parcelas activas</span>
-				</div>
-				<div class="stat">
-					<strong>3</strong>
-					<span>Alertas hoy</span>
-				</div>
-				<div class="stat">
-					<strong>24%</strong>
-					<span>Agua usada / meta</span>
-				</div>
-				<div class="stat">
-					<strong>5</strong>
-					<span>Tareas pendientes</span>
-				</div>
-			</div>
-		</section>
+		<!-- Resumen rápido removido por solicitud del usuario -->
 	</main>
 
 	<footer class="site-footer">
 		<div class="container">
-			<small>© <?php echo date('Y'); ?> Hackatek - Proyecto de ejemplo</small>
+			<small>© <?php echo date('Y'); ?> Optilife - Derechos Reservados</small>
 		</div>
 	</footer>
 
