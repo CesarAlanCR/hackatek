@@ -73,8 +73,8 @@
 			</article>
 
 			<article id="modulo-mercado" class="card module-card" data-module="Mercado" tabindex="0">
-				<h3>Insumos</h3>
-				<p>calcula el aproximado para tu fertilizante</p>
+				<h3>Gastos Aproximados</h3>
+				<p>Calcula el aproximado para tu fertilizante</p>
 				<a href="insumos.php" class="btn btn-primary" aria-label="Abrir Insumos">Abrir</a>
 			</article>
 		</section>
