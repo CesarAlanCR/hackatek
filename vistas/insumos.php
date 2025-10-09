@@ -12,17 +12,35 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 <html lang="es">
 <head>
   <meta charset="utf-8">
+  	<link rel="icon" type="image/png" href="logo.png">
+
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Hackatek - Calculadora de Insumos</title>
   <link rel="stylesheet" href="../recursos/css/general.css">
   <style>
-    form.controls label{display:flex;flex-direction:column;font-size:.85rem;font-weight:600;color:var(--green-4);background:linear-gradient(180deg,var(--green-1),white);padding:12px;border-radius:8px;border:1px solid rgba(47,143,68,0.08)}
-    form.controls input, form.controls select{margin-top:4px;padding:6px 8px;border:1px solid #c3d8c6;border-radius:6px;font:inherit}
+    /* Page header similar to chat/agua pages */
+  .page-header{padding:18px 20px;border-bottom:1px solid var(--border);background:rgba(30,41,54,0.6);backdrop-filter:blur(8px);display:flex;align-items:center;gap:12px;margin-bottom:0;border-radius:12px 12px 0 0}
+  .page-header h2{margin:0;color:var(--accent);font-size:1.2rem;font-weight:700;text-align:center;flex:1;transform:translateX(-62px);pointer-events:none}
+  .btn-back{background:rgba(124, 179, 66, 0.12);border:1px solid var(--border);color:var(--accent);padding:8px 14px;border-radius:10px;font-weight:600;text-decoration:none;position:relative;z-index:3;transition:var(--transition-fast)}
+  .btn-back:hover{background:var(--accent);color:#fff;transform:translateX(-4px)}
+
+  /* container that groups header + card to match chat/agua layouts */
+  .page-card{background:var(--bg-card);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid var(--border);}
+  .page-card .page-header{margin:0;padding:18px 20px}
+  .page-card .card{border-radius:0 0 var(--radius-lg) var(--radius-lg);margin:0}
+
+    /* Disable hover effects inside the grouped page-card so header+form look like a single panel */
+    .page-card .card:hover{transform:none;box-shadow:var(--shadow);background:var(--bg-card);border-color:var(--border)}
+    .page-card .card::before,.page-card .card::after{opacity:0}
+
+  form.controls label{display:flex;flex-direction:column;font-size:.85rem;font-weight:600;color:var(--green-4);background:transparent;padding:8px 0;border-radius:6px;border:0}
+  form.controls input, form.controls select{margin-top:4px;padding:6px 8px;border:1px solid #c3d8c6;border-radius:6px;font:inherit;background:#fbfcfb}
     .result-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px;justify-content:center}
-    .result{background:white;border:1px solid #e0eee3;border-radius:8px;padding:12px;text-align:center}
+    /* Make whites a bit softer to avoid harsh "chillon" menus */
+    .result{background:#fbfdfe;border:1px solid #888f8bff;border-radius:8px;padding:12px;text-align:center}
     .result strong{color:#2f6138}
-  /* Fondo azul aún más claro para resaltar suavemente */
-  .result.accent{background:#f0f8ff;border-color:#cfe8ff;color:#2f6138}
+  /* Fondo azul aún más claro para resaltar suavemente (muted) */
+  .result.accent{background:#f6fbff;border-color:#dcecfb;color:#2f6138}
     .list-table{width:100%;border-collapse:collapse}
     .list-table th,.list-table td{padding:8px;border-bottom:1px solid #e7f2ea;text-align:left}
     .list-table th{color:#2f6138;font-weight:700}
@@ -30,13 +48,13 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
   </style>
 </head>
 <body>
-  <main class="container">
-    <section class="hero">
-      <h2>Calculadora de Insumos y Costos</h2>
-      <p class="lead">Selecciona un insumo, ingresa las hectáreas de tu parcela y consulta la cantidad requerida y el costo estimado. Esta es una página informativa; no realiza compras.</p>
-    </section>
-
-    <section class="card" aria-label="Calculadora">
+  <main class="container" style="padding:40px 0">
+    <div class="page-card">
+      <div class="page-header">
+        <a href="index.php" class="btn-back">← Volver</a>
+        <h2>Calculadora de Insumos</h2>
+      </div>
+      <section class="card" aria-label="Calculadora">
       <form class="controls" id="calc-form" onsubmit="return false;">
         <div class="preview-grid">
           <label>
@@ -69,18 +87,13 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
             <strong>$<span id="res_costo">—</span> MXN</strong>
           </div>
         </div>
-        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
           <button class="btn btn-primary" type="button" id="btn-limpiar-form">Limpiar</button>
         </div>
       </form>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="container">
-      <small>© <?= date('Y') ?> Hackatek - Proyecto de ejemplo</small>
-    </div>
-  </footer>
 
   <script>
     // Cálculo instantáneo (informativo)

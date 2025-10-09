@@ -489,3 +489,19 @@ input[type=number] {
 	.chat-container{padding:8px}
 	.msg{max-width:92%}
 }
+
+/* Insumos page shared adjustments moved here from view-specific CSS */
+.page-card .page-header{padding:18px 20px;border-bottom:1px solid var(--border);background:rgba(30,41,54,0.6);backdrop-filter:blur(8px);display:flex;align-items:center;gap:12px;margin-bottom:0;border-radius:12px 12px 0 0}
+.page-card .page-header h2{margin:0;color:var(--accent);font-size:1.2rem;font-weight:700;text-align:center;flex:1}
+.page-card .btn-back{background:rgba(124, 179, 66, 0.12);border:1px solid var(--border);color:var(--accent);padding:8px 14px;border-radius:10px;font-weight:600;text-decoration:none;position:relative;z-index:3}
+.page-card .btn-back:hover{background:var(--accent);color:#fff}
+
+/* Softened results and inputs for insumos */
+.insumos .controls label{display:flex;flex-direction:column;font-size:.85rem;font-weight:600;color:var(--green-4);background:transparent;padding:8px 0;border-radius:6px;border:0}
+.insumos .controls input, .insumos .controls select{margin-top:4px;padding:6px 8px;border:1px solid #c3d8c6;border-radius:6px;font:inherit;background:#fbfcfb}
+.insumos .result{background:#fbfdfe;border:1px solid rgba(136,143,139,0.15);border-radius:8px;padding:12px;text-align:center}
+.insumos .result.accent{background:#f6fbff;border-color:#dcecfb}
+
+/* Ensure .btn-back follows btn animation pattern */
+.page-card .btn-back::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg, transparent, rgba(255,255,255,0.08));transform:translateX(-100%);transition:transform 0.4s ease}
+.page-card .btn-back:hover::before{transform:translateX(100%)}
