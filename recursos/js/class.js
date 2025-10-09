@@ -201,6 +201,14 @@ document.addEventListener('DOMContentLoaded', function(){
 			window.appState.lastCoords = { lat, lon };
 			window.appState.currentCity = cityName;
 			
+			// Extraer y guardar estado de la ciudad (formato: "Ciudad, Estado")
+			if (cityName) {
+				const parts = cityName.split(',');
+				if (parts.length > 1) {
+					window.appState.currentState = parts[1].trim();
+				}
+			}
+			
 			// Mostrar ciudad actual
 			currentCityDisplay.textContent = `📍 ${cityName}`;
 			currentCityDisplay.className = 'current-city active';
@@ -209,6 +217,17 @@ document.addEventListener('DOMContentLoaded', function(){
 			console.log('🔄 Actualizando clima para:', cityName);
 			const weatherData = await fetchExtendedWeather(lat, lon, OWM_API_KEY);
 			updateWeatherUIFromData(weatherData);
+			
+			// Obtener y guardar tipo de suelo
+			try {
+				const soilData = await getINEGISoilType(lat, lon);
+				if (soilData && soilData.soilType) {
+					window.appState.currentSoil = soilData.soilType;
+					console.log('🌱 Tipo de suelo guardado:', soilData.soilType);
+				}
+			} catch (soilErr) {
+				console.warn('No se pudo obtener tipo de suelo:', soilErr);
+			}
 			
 			// Actualizar mapa si existe
 			if (window.appState.map) {

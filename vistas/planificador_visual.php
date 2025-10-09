@@ -70,6 +70,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensaje = 'Completa todos los campos.';
     }
 }
+
+// --- Recomendación Inteligente (SAGRO-IA) basada en contexto del índice y BD optilife ---
+// Lee contexto desde querystring (proveniente de index) y calcula recomendaciones
+// Asunciones: BD optilife accessible en localhost (XAMPP) con usuario root sin contraseña
+
+// Helpers para normalizar strings y coincidencias parciales
+function norm($s){
+    $s = mb_strtolower((string)$s, 'UTF-8');
+    $s = preg_replace('/[áÁ]/u','a',$s);
+    $s = preg_replace('/[éÉ]/u','e',$s);
+    $s = preg_replace('/[íÍ]/u','i',$s);
+    $s = preg_replace('/[óÓ]/u','o',$s);
+    $s = preg_replace('/[úÚ]/u','u',$s);
+    $s = preg_replace('/[ñÑ]/u','n',$s);
+    return trim($s);
+}
+function contains_norm($hay,$needle){
+    $hay = norm($hay); $needle = norm($needle);
+    if($needle==='') return false; return (strpos($hay,$needle) !== false);
+}
+function temporada_actual(){
+    $m = (int)date('n');
+    if($m===12 || $m<=2) return 'Invierno';
+    if($m>=3 && $m<=5) return 'Primavera';
+    if($m>=6 && $m<=8) return 'Verano';
+    return 'Otoño';
+}
+
+// Obtener contexto
+$ctx = [
+    'clima' => $_GET['clima'] ?? null,
+    'lat' => isset($_GET['lat']) ? (float)$_GET['lat'] : null,
+    'lon' => isset($_GET['lon']) ? (float)$_GET['lon'] : null,
+    'temp_max' => isset($_GET['tmax']) ? (float)$_GET['tmax'] : null,
+    'suelo' => $_GET['suelo'] ?? null,
+    'estado' => $_GET['estado'] ?? null,
+    'temporada' => $_GET['temporada'] ?? null,
+];
+if(!$ctx['temporada']) $ctx['temporada'] = temporada_actual();
+
+// Conexión BD optilife y obtención de productos
+$recos = [];
+$dbOk = false; $dbErr = null;
+try{
+    $cn = @new mysqli('127.0.0.1','root','', 'optilife');
+    if($cn && !$cn->connect_error){
+        $dbOk = true;
+        $sql = "SELECT id,nombre,clima,t_min,t_max,epoca_siembra,dias_germinacion,dias_caducidad,recomendaciones,suelo,estados FROM productos";
+        if($rs = $cn->query($sql)){
+            while($row = $rs->fetch_assoc()){
+                    // Nuevo scoring ponderado: Estado (5), Época (3), Suelo (1), Temperatura (1). Máximo 10 puntos.
+                    $score = 0; $reasons = [];
+
+                    // Estado (comparación exacta por token)
+                    if($ctx['estado'] && !empty($row['estados'])){
+                        $estTokens = array_filter(array_map('trim', preg_split('/[,;|]/', $row['estados'])));
+                        $estMatch = false; $ctxEstadoNorm = norm($ctx['estado']);
+                        foreach($estTokens as $token){
+                            if(norm($token) === $ctxEstadoNorm){ $estMatch = true; break; }
+                        }
+                        if($estMatch){ $score += 5; $reasons[] = 'Coincidencia exacta de estado'; }
+                    }
+
+                    // Época de siembra (coincidencia exacta por token)
+                    if($ctx['temporada'] && !empty($row['epoca_siembra'])){
+                        $epiTokens = array_filter(array_map('trim', preg_split('/[,;|]/', $row['epoca_siembra'])));
+                        $tempMatch = false; $ctxTempNorm = norm($ctx['temporada']);
+                        foreach($epiTokens as $token){
+                            if(norm($token) === $ctxTempNorm){ $tempMatch = true; break; }
+                        }
+                        if($tempMatch){ $score += 3; $reasons[] = 'Coincidencia exacta de época de siembra'; }
+                    }
+
+                    // Suelo (coincidencia exacta por token)
+                    if($ctx['suelo'] && !empty($row['suelo'])){
+                        $soilTokens = array_filter(array_map('trim', preg_split('/[,;|]/', $row['suelo'])));
+                        $soilMatch = false; $ctxSoilNorm = norm($ctx['suelo']);
+                        foreach($soilTokens as $token){
+                            if(norm($token) === $ctxSoilNorm){ $soilMatch = true; break; }
+                        }
+                        if($soilMatch){ $score += 1; $reasons[] = 'Coincidencia exacta de tipo de suelo'; }
+                    }
+
+                    // Temperatura (rango ideal)
+                    $tmin = is_numeric($row['t_min']) ? (float)$row['t_min'] : null;
+                    $tmax = is_numeric($row['t_max']) ? (float)$row['t_max'] : null;
+                    if($ctx['temp_max']!==null && $tmin!==null && $tmax!==null && $ctx['temp_max'] >= $tmin && $ctx['temp_max'] <= $tmax){
+                        $score += 1; $reasons[] = 'Temperatura dentro del rango ideal'; }
+
+                    // Guardar (máximo 10 puntos)
+                    $score = min($score, 10);
+                    $recos[] = [
+                        'score' => $score,
+                        'producto' => $row,
+                        'reasons' => $reasons
+                    ];
+            }
+            // Deduplicar por nombre (quedarse con mayor score)
+            $dedup = [];
+            foreach($recos as $item){
+                $nameKey = norm($item['producto']['nombre']);
+                if(!isset($dedup[$nameKey]) || $item['score'] > $dedup[$nameKey]['score']){
+                    $dedup[$nameKey] = $item;
+                }
+            }
+            // Filtrar recomendaciones con score > 0
+            $recos = array_values(array_filter($dedup, function($item){ return $item['score'] > 0; }));
+
+            $rs->free();
+        }
+        $cn->close();
+    } else {
+        $dbErr = $cn ? $cn->connect_error : 'No se pudo conectar a MySQL';
+    }
+}catch(Throwable $e){ $dbErr = $e->getMessage(); }
+
+// Ordenar por score desc y tomar top N
+usort($recos, function($a,$b){ return $b['score'] <=> $a['score']; });
+$recosTop = array_slice($recos, 0, 10);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -348,6 +467,44 @@ small{color:var(--text-muted);}
                 <strong>Ajuste por frío:</strong> Si el frío acumulado es menor al esperado se retrasa un poco la fecha estimada. <br/>
                 <em>Consejo:</em> Usa "Actualizar clima" si pasaron varias horas o días desde la última consulta.
             </div>
+        </section>
+    </div>
+    <!-- Recomendación Inteligente basada en contexto -->
+    <div class="page-card" style="margin-top:18px;">
+        <div class="page-header">
+            <h2>Recomendación Inteligente (SAGRO-IA)</h2>
+        </div>
+        <section class="card">
+            <?php if(!$dbOk): ?>
+                <div class="alerta">No fue posible consultar la BD optilife para recomendaciones. <?= htmlspecialchars((string)$dbErr) ?></div>
+            <?php else: ?>
+                <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">
+                    Contexto: Clima <?= htmlspecialchars((string)($ctx['clima'] ?? '—')) ?> | Temp. Máxima <?= htmlspecialchars((string)($ctx['temp_max'] ?? '—')) ?>°C | Suelo <?= htmlspecialchars((string)($ctx['suelo'] ?? '—')) ?> | Estado <?= htmlspecialchars((string)($ctx['estado'] ?? '—')) ?> | Temporada <?= htmlspecialchars((string)($ctx['temporada'] ?? '—')) ?>.
+                </div>
+                <?php if(empty($recosTop)): ?>
+                    <p style="font-size:13px;color:var(--text-muted);">No se generaron recomendaciones con el contexto actual.</p>
+                <?php else: ?>
+                <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+                    Se muestran <?= count($recosTop) ?> coincidencias únicas con score &gt; 0 (máx. 10).
+                </p>
+                <div class="metrics-grid">
+                    <?php foreach($recosTop as $r): $p = $r['producto']; ?>
+                        <div class="metric-card" style="transform:none;opacity:1;">
+                            <h3><?= htmlspecialchars($p['nombre']) ?></h3>
+                            <div class="value">Score: <?= htmlspecialchars((string)$r['score']) ?></div>
+                            <small>Clima: <?= htmlspecialchars($p['clima']) ?> | Rango: <?= htmlspecialchars((string)$p['t_min']) ?>–<?= htmlspecialchars((string)$p['t_max']) ?>°C | Suelo: <?= htmlspecialchars($p['suelo']) ?> | Época: <?= htmlspecialchars($p['epoca_siembra']) ?></small>
+                            <?php if(!empty($r['reasons'])): ?>
+                                <ul style="margin:8px 0 0;padding-left:18px;color:var(--text-secondary);">
+                                    <?php foreach($r['reasons'] as $reason): ?>
+                                        <li><?= htmlspecialchars($reason) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+            <?php endif; ?>
         </section>
     </div>
     <?php if($resultado): ?>

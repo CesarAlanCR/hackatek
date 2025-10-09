@@ -75,7 +75,7 @@
 			<article id="modulo-clima" class="card module-card" data-module="Clima" tabindex="0">
 				<h3>Planificador virtual</h3>
 				<p>Planifica tus cultivos como un experto</p>
-				<a href="planificador_visual.php" class="btn btn-primary" aria-label="Abrir Planificador virtual">Abrir</a>
+				<a id="planificador-link" href="#" class="btn btn-primary" aria-label="Abrir Planificador virtual">Abrir</a>
 			</article>
 
 			
@@ -156,5 +156,63 @@
 	</script>
 	<script src="../recursos/js/class.js" defer></script>
 	<script src="../recursos/js/animations.js" defer></script>
+
+<script>
+// Recoge los datos de clima/ubicación mostrados en index y los pasa al planificador
+function getPlanificadorParams() {
+	// Obtener temperatura del elemento
+	const tempText = document.getElementById('temp-value')?.textContent || '';
+	const tempMatch = tempText.match(/(\d+)/);
+	const tmax = tempMatch ? tempMatch[1] : '';
+	
+	// Obtener coordenadas y ciudad del estado global
+	const lat = window.appState?.lastCoords?.lat || '';
+	const lon = window.appState?.lastCoords?.lon || '';
+	const cityName = window.appState?.currentCity || '';
+	
+	// Extraer estado de la ciudad (formato: "Ciudad, Estado")
+	let estado = '';
+	if (cityName) {
+		const parts = cityName.split(',');
+		if (parts.length > 1) {
+			estado = parts[1].trim();
+		}
+	}
+	
+	// Obtener tipo de suelo si está guardado
+	const suelo = window.appState?.currentSoil || '';
+	
+	// Determinar temporada actual
+	const m = new Date().getMonth() + 1;
+	let temporada = 'Otoño';
+	if (m === 12 || m <= 2) temporada = 'Invierno';
+	else if (m >= 3 && m <= 5) temporada = 'Primavera';
+	else if (m >= 6 && m <= 8) temporada = 'Verano';
+	
+	return {
+		clima: tempText,
+		lat: lat,
+		lon: lon,
+		tmax: tmax,
+		suelo: suelo,
+		estado: estado,
+		temporada: temporada
+	};
+}
+
+document.getElementById('planificador-link').addEventListener('click', function(e) {
+	e.preventDefault();
+	const params = getPlanificadorParams();
+	
+	console.log('📊 Parámetros enviados al planificador:', params);
+	
+	// Construye la querystring
+	const qs = Object.entries(params)
+		.filter(([k,v]) => v !== '') // Solo parámetros con valor
+		.map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+		.join('&');
+	window.location.href = `planificador_visual.php?${qs}`;
+});
+</script>
 </body>
 </html>
