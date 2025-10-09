@@ -634,98 +634,133 @@ function initWeatherMap(container, apiKey) {
 		L.control.layers({ 'OpenStreetMap': osm }, overlays, { collapsed: true }).addTo(map);
 	}
 
-	// Geolocalización
-	const defaultCenter = [9.7489, -83.7534];
+	// Geolocalización - SIEMPRE intentar obtener ubicación actual al cargar
+	const defaultCenter = [19.4326, -99.1332]; // Ciudad de México como fallback
 	const defaultZoom = 7;
 
+	console.log('📍 Solicitando ubicación actual automáticamente...');
+	
+	// Asegurarse de que el mapa esté listo
+	map.whenReady(() => {
+		console.log('🗺️ Mapa listo para geolocalización');
+	});
+	
 	if (navigator.geolocation) {
-		navigator.geolocation.getCurrentPosition(async function(pos){
-			const { latitude, longitude, accuracy } = pos.coords;
-			console.log('📍 Ubicación inicial obtenida:', { latitude, longitude });
-			
-			try {
-				// Obtener nombre de la ciudad usando geocoding inverso
-				const url = `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`;
-				const response = await fetch(url);
-				const data = await response.json();
-				
-				const cityName = data[0] ? `${data[0].name}, ${data[0].state || data[0].country}` : 'Tu ubicación actual';
-				
-				// Usar selectCity para mantener consistencia (con pequeño retraso para asegurar que el DOM esté listo)
-				setTimeout(async () => {
-					await selectCity(latitude, longitude, cityName);
-				}, 100);
-				
-				// Agregar círculo de precisión si está disponible
-				if (accuracy) {
-					L.circle([latitude, longitude], { 
-						radius: accuracy, 
-						color: '#2f8f44', 
-						fillColor: '#2f8f44', 
-						fillOpacity: 0.15 
-					}).addTo(map);
-				}
-				
-			} catch (err) {
-				console.error('Error obteniendo nombre de ciudad inicial:', err);
-				// Fallback sin nombre de ciudad
-				window.appState.lastCoords = { lat: latitude, lon: longitude };
-				map.setView([latitude, longitude], 13);
-				const marker = L.marker([latitude, longitude]).addTo(map);
-				
-				const text = accuracy ? `Tu ubicación (±${Math.round(accuracy)} m)` : 'Tu ubicación aproximada';
-				marker.bindPopup(text).openPopup();
-				
-				if (accuracy) {
-					L.circle([latitude, longitude], { 
-						radius: accuracy, 
-						color: '#2f8f44', 
-						fillColor: '#2f8f44', 
-						fillOpacity: 0.15 
-					}).addTo(map);
-				}
-				
-				// Cargar clima básico
-				if (apiKey) {
-					try {
-						const weatherData = await fetchExtendedWeather(latitude, longitude, apiKey);
-						updateWeatherUIFromData(weatherData);
-						
-						const desc = weatherData.weather?.[0]?.description || 'Clima';
-						const temp = weatherData.main?.temp != null ? Math.round(weatherData.main.temp) : 'N/D';
-						marker.setPopupContent(`${text}<br>${desc}, ${temp}°C`);
-					} catch (weatherErr) {
-						showWeatherError(weatherErr);
-					}
-				} else {
-					showWeatherError('Falta API key');
-				}
-			}
-		}, function(err){
-			console.warn('⚠️ Error de geolocalización:', err && err.message);
-			map.setView(defaultCenter, defaultZoom);
-			L.marker(defaultCenter).addTo(map).bindPopup('No se pudo obtener tu ubicación. Vista por defecto.');
-			window.appState.lastCoords = { lat: defaultCenter[0], lon: defaultCenter[1] };
-			
-			if (apiKey) {
-				fetchWeather(defaultCenter[0], defaultCenter[1], apiKey)
-					.then(updateWeatherUIFromData)
-					.catch(err => showWeatherError(err));
-			} else {
-				showWeatherError('Falta API key');
-			}
-		}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
-	} else {
-		map.setView(defaultCenter, defaultZoom);
-		L.marker(defaultCenter).addTo(map).bindPopup('Geolocalización no soportada por tu navegador.');
-		window.appState.lastCoords = { lat: defaultCenter[0], lon: defaultCenter[1] };
+		// Configurar opciones de geolocalización más agresivas
+		const geoOptions = {
+			enableHighAccuracy: true,
+			timeout: 10000, // 10 segundos
+			maximumAge: 300000 // 5 minutos
+		};
 		
-		if (apiKey) {
-			fetchWeather(defaultCenter[0], defaultCenter[1], apiKey)
+		navigator.geolocation.getCurrentPosition(
+			async function(pos) {
+				const { latitude, longitude, accuracy } = pos.coords;
+				console.log('✅ Ubicación actual obtenida automáticamente:', { latitude, longitude });
+				
+				try {
+					// Obtener nombre de la ciudad usando geocoding inverso
+					const url = `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`;
+					const response = await fetch(url);
+					const data = await response.json();
+					
+					const cityName = data[0] ? `${data[0].name}, ${data[0].state || data[0].country}` : 'Tu ubicación actual';
+					console.log('🏙️ Ciudad detectada:', cityName);
+					
+					// Actualizar el mapa y los datos usando la función selectCity
+					if (typeof selectCity === 'function') {
+						console.log('🔄 Actualizando mapa con selectCity...');
+						setTimeout(async () => {
+							await selectCity(latitude, longitude, cityName);
+						}, 200);
+					} else {
+						console.log('🔄 selectCity no disponible, actualizando manualmente...');
+						// Fallback manual si selectCity no está disponible
+						map.setView([latitude, longitude], 12);
+						L.marker([latitude, longitude]).addTo(map)
+							.bindPopup(`${cityName}<br>📍 Tu ubicación actual`)
+							.openPopup();
+						
+						// Actualizar estado global
+						window.appState.lastCoords = { lat: latitude, lon: longitude };
+						window.appState.currentCity = cityName;
+						
+						// Cargar datos de clima
+						if (apiKey) {
+							try {
+								const weatherData = await fetchExtendedWeather(latitude, longitude, apiKey);
+								updateWeatherUIFromData(weatherData);
+							} catch (weatherErr) {
+								console.error('Error cargando clima inicial:', weatherErr);
+							}
+						}
+					}
+					
+					// Agregar círculo de precisión si está disponible
+					if (accuracy && accuracy < 1000) { // Solo si la precisión es razonable
+						L.circle([latitude, longitude], { 
+							radius: accuracy, 
+							color: '#2f8f44', 
+							fillColor: '#2f8f44', 
+							fillOpacity: 0.15 
+						}).addTo(map);
+					}
+					
+				} catch (err) {
+					console.error('Error obteniendo ubicación inicial:', err);
+					// Fallback: usar ubicación básica
+					map.setView([latitude, longitude], 12);
+					L.marker([latitude, longitude]).addTo(map)
+						.bindPopup('Tu ubicación actual')
+						.openPopup();
+				}
+			},
+			function(error) {
+				console.warn('⚠️ No se pudo obtener ubicación actual:', error.message);
+				console.log('🏙️ Usando ubicación por defecto (Ciudad de México)');
+				
+				// Fallback: usar Ciudad de México
+				map.setView(defaultCenter, defaultZoom);
+				L.marker(defaultCenter).addTo(map)
+					.bindPopup('Ciudad de México, México<br>📍 Ubicación por defecto')
+					.openPopup();
+				
+				// Cargar clima de Ciudad de México
+				if (typeof selectCity === 'function') {
+					setTimeout(() => {
+						selectCity(defaultCenter[0], defaultCenter[1], 'Ciudad de México, México');
+					}, 200);
+				} else if (apiKey) {
+					// Fallback manual
+					window.appState.lastCoords = { lat: defaultCenter[0], lon: defaultCenter[1] };
+					fetchExtendedWeather(defaultCenter[0], defaultCenter[1], apiKey)
+						.then(updateWeatherUIFromData)
+						.catch(err => console.error('Error cargando clima fallback:', err));
+				}
+			},
+			geoOptions
+		);
+	} else {
+		console.warn('⚠️ Geolocalización no soportada');
+		console.log('🏙️ Usando ubicación por defecto (Ciudad de México)');
+		
+		// Fallback: usar Ciudad de México  
+		map.setView(defaultCenter, defaultZoom);
+		L.marker(defaultCenter).addTo(map)
+			.bindPopup('Ciudad de México, México<br>📍 Ubicación por defecto')
+			.openPopup();
+		
+		// Cargar clima de Ciudad de México
+		if (typeof selectCity === 'function') {
+			setTimeout(() => {
+				selectCity(defaultCenter[0], defaultCenter[1], 'Ciudad de México, México');
+			}, 200);
+		} else if (apiKey) {
+			// Fallback manual
+			window.appState.lastCoords = { lat: defaultCenter[0], lon: defaultCenter[1] };
+			fetchExtendedWeather(defaultCenter[0], defaultCenter[1], apiKey)
 				.then(updateWeatherUIFromData)
-				.catch(err => showWeatherError(err));
-		} else {
-			showWeatherError('Falta API key');
+				.catch(err => console.error('Error cargando clima fallback:', err));
 		}
 	}
 }
