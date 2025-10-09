@@ -170,7 +170,6 @@ html,body{
 	height:280px;
 	border-radius:var(--radius-lg);
 	border:1px solid var(--border);
-	box-shadow:var(--shadow);
 }
 .preview-info ul{margin:12px 0 0 20px;color:var(--text-secondary)}
 .preview-info ul li{margin-bottom:8px}
@@ -192,42 +191,26 @@ html,body{
 	background:var(--bg-card);
 	border-radius:var(--radius-lg);
 	padding:28px;
-	box-shadow:var(--shadow);
 	border:1px solid var(--border);
 	position:relative;
 	overflow:hidden;
 	transition:var(--transition);
 	backdrop-filter:blur(10px);
 }
-.card::before{
-	content:'';
-	position:absolute;
-	top:0;
-	left:0;
-	right:0;
-	height:4px;
-	background:linear-gradient(90deg,var(--green-3),var(--accent));
-	opacity:0;
-	transition:opacity 0.3s ease;
-	pointer-events:none; /* allow clicks through */
-}
+
 .card::after{
 	content:'';
 	position:absolute;
 	inset:0;
 	border-radius:var(--radius-lg);
 	padding:1px;
-	background:linear-gradient(135deg, var(--green-3), var(--accent));
-	-webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-	-webkit-mask-composite:xor;
-	mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-	mask-composite:exclude;
+	background:transparent;
 	opacity:0;
 	transition:opacity 0.4s ease;
-	pointer-events:none; /* ensure overlay does not block links/buttons */
+	pointer-events:none;
 }
-.card:hover::before{opacity:1}
-.card:hover::after{opacity:0.4}
+.card:hover::before{opacity:0}
+.card:hover::after{opacity:0}
 
 .module-card{
 	transition:var(--transition-bounce);
@@ -241,7 +224,6 @@ html,body{
 }
 .module-card:hover{
 	transform:translateY(-12px) scale(1.03);
-	box-shadow:var(--shadow-glow);
 	background:var(--bg-card-hover);
 	border-color:var(--border-hover);
 }

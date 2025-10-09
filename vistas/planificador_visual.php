@@ -147,7 +147,7 @@ try {
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Planificador Visual de Cosecha</title>
+<title>Planificador Visual </title>
 <link rel="stylesheet" href="../recursos/css/general.css">
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -262,10 +262,8 @@ try {
     position:relative;
 }
 .metric-card:hover{
-    border-color:var(--accent);
     transform:translateY(-2px) scale(1.02);
-    box-shadow:0 8px 25px rgba(124,179,66,0.15);
-    background:rgba(124,179,66,0.05);
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
 }
 .metric-card:active{
     transform:translateY(0) scale(1);
@@ -290,7 +288,7 @@ try {
 
 /* Alert styles using CSS variables */
 .alerta{background:rgba(255,152,0,0.1);padding:10px 12px;border-left:4px solid #ff9800;margin:6px 0;border-radius:4px;font-size:13px;color:var(--text-primary);}
-.ok{background:rgba(76,175,80,0.1);padding:10px 12px;border-left:4px solid #4caf50;margin:6px 0;border-radius:4px;font-size:13px;color:var(--text-primary);}
+
 .info{background:rgba(33,150,243,0.1);padding:10px 12px;border-left:4px solid #2196f3;margin:6px 0;border-radius:4px;font-size:13px;color:var(--text-primary);}
 
 /* Chart boxes */
@@ -380,7 +378,7 @@ small{color:var(--text-muted);}
     opacity: 1;
 }
 
-/* Modal de detalles */
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -492,7 +490,7 @@ small{color:var(--text-muted);}
 
 /* Special boxes */
 .ventana-box{background:var(--bg-card);border:1px solid var(--accent);}
-.anaquel-box{background:var(--bg-card);border:1px solid var(--green-3);}
+/*.anaquel-box{background:var(--bg-card);border:1px solid var(--green-3);}*/
 
 /* Special buttons in content */
 #toggleDetallado{
@@ -501,11 +499,11 @@ small{color:var(--text-muted);}
     border:none;
     transition:var(--transition-fast);
 }
-#toggleDetallado:hover{
+/*#toggleDetallado:hover{
     background:var(--accent-hover) !important;
     transform:translateY(-1px);
     box-shadow:0 4px 12px var(--green-glow);
-}
+}*/
 
 /* Grid layout for metric summaries */
 .grid{
@@ -545,7 +543,7 @@ small{color:var(--text-muted);}
 </head>
 <body><canvas width="978" height="738" style="position: fixed; top: 0px; left: 0px; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0.15;"></canvas>
 <main class="container" style="padding:40px 0">
-    <!-- Recomendación Inteligente basada en contexto -->
+  
     <div class="page-card" style="margin-top:18px;">
         <div class="map-header" style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:rgba(30,41,54,0.6);border-bottom:1px solid var(--border);">
             <a href="index.php" class="btn-back">← Volver</a>
@@ -554,7 +552,7 @@ small{color:var(--text-muted);}
         </div>
         <section class="card in-view">
             <?php if (!$conexionExitosa): ?>
-                <div class="alerta" style="background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.3);color:#dc2626;padding:12px;border-radius:8px;margin-bottom:16px;">
+                <div class="alerta" style="background:rgba(220,38,38,0.1);color:#dc2626;padding:12px;border-radius:8px;margin-bottom:16px;">
                     <strong>Error de conexión:</strong> <?= htmlspecialchars($errorConexion) ?>
                 </div>
             <?php else: ?>
