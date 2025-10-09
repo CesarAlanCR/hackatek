@@ -228,6 +228,9 @@ document.addEventListener('DOMContentLoaded', function(){
 			} catch (soilErr) {
 				console.warn('No se pudo obtener tipo de suelo:', soilErr);
 			}
+
+			// Garantizar que la propiedad currentSoil exista (evitar undefined)
+			if (!window.appState.currentSoil) window.appState.currentSoil = '';
 			
 			// Actualizar mapa si existe
 			if (window.appState.map) {

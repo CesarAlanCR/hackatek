@@ -19,78 +19,66 @@ if (preg_match('/(\d+)/', $clima, $matches)) {
     $temperatura = intval($matches[1]);
 }
 
+// Registrar suelo en GLOBALS para que esté disponible en la función
+$GLOBALS['suelo'] = $suelo;
+
 // Función para calcular score de compatibilidad
 function calcularScore($cultivo, $temperatura, $estado, $temporada) {
     $score = 0;
     $reasons = [];
-    
-    // Score por temperatura (máximo 4 puntos)
-    if ($temperatura >= $cultivo['t_min'] && $temperatura <= $cultivo['t_max']) {
-        $score += 4;
-        $reasons[] = 'Temperatura dentro del rango ideal';
-    } else {
-        $diff = min(abs($temperatura - $cultivo['t_min']), abs($temperatura - $cultivo['t_max']));
-        if ($diff <= 5) {
-            $score += 2;
-            $reasons[] = 'Temperatura cercana al rango óptimo';
-        }
-    }
-    
-    // Score por estado (máximo 3 puntos)
+
+    // Score por estado (máximo 4 puntos)
     $estadosCultivo = explode(',', $cultivo['estados']);
     $estadosCultivo = array_map('trim', $estadosCultivo);
-    
     if (in_array($estado, $estadosCultivo)) {
-        $score += 3;
-        $reasons[] = 'Coincidencia exacta de estado';
+        $score += 4;
+        $reasons[] = ['text' => 'Popular en tu estado', 'type' => 'positive'];
     } else {
-        // Verificar estados vecinos o similares
-        $estadosVecinos = [
-            'Sonora' => ['Sinaloa', 'Chihuahua', 'Baja California'],
-            'Sinaloa' => ['Sonora', 'Nayarit', 'Durango'],
-            'Chihuahua' => ['Sonora', 'Coahuila', 'Durango'],
-            'Coahuila' => ['Chihuahua', 'Nuevo León', 'Durango'],
-            'Nuevo León' => ['Coahuila', 'Tamaulipas']
-        ];
-        
-        if (isset($estadosVecinos[$estado])) {
-            foreach ($estadosVecinos[$estado] as $vecino) {
-                if (in_array($vecino, $estadosCultivo)) {
-                    $score += 1;
-                    $reasons[] = 'Estado vecino con condiciones similares';
-                    break;
-                }
-            }
-        }
+        $reasons[] = ['text' => 'No popular en este estado', 'type' => 'negative'];
     }
-    
-    // Score por temporada (máximo 3 puntos)
+
+    // Score por época de siembra (máximo 3 puntos)
     $epocas = explode('-', $cultivo['epoca_siembra']);
     $epocasPrincipales = array_map('trim', $epocas);
-    
     if (in_array($temporada, $epocasPrincipales)) {
         $score += 3;
-        $reasons[] = 'Coincidencia exacta de época de siembra';
+        $reasons[] = ['text' => 'Época perfecta para sembrar', 'type' => 'positive'];
     } else {
-        // Verificar compatibilidad parcial
-        $temporadasCompatibles = [
-            'Otoño' => ['Invierno'],
-            'Invierno' => ['Otoño', 'Primavera'],
-            'Primavera' => ['Invierno', 'Verano'],
-            'Verano' => ['Primavera']
-        ];
-        
-        if (isset($temporadasCompatibles[$temporada])) {
-            foreach ($temporadasCompatibles[$temporada] as $compatible) {
-                if (in_array($compatible, $epocasPrincipales)) {
-                    $score += 1;
-                    $reasons[] = 'Época de siembra compatible';
-                    break;
-                }
+        $reasons[] = ['text' => 'Época no ideal para sembrar', 'type' => 'negative'];
+    }
+
+    // Score por tipo de suelo (máximo 2 puntos)
+    if (!empty($cultivo['suelo']) && !empty($GLOBALS['suelo'])) {
+        $sueloActual = strtolower(trim($GLOBALS['suelo']));
+        $sueloCultivoArr = preg_split('/[-,]/', strtolower($cultivo['suelo']));
+        $sueloCultivoArr = array_map('trim', $sueloCultivoArr);
+        $coincideSuelo = false;
+        foreach ($sueloCultivoArr as $sueloC) {
+            // Coincidencia si uno contiene al otro
+            if (strpos($sueloActual, $sueloC) !== false || strpos($sueloC, $sueloActual) !== false) {
+                $coincideSuelo = true;
+                break;
             }
         }
+        if ($coincideSuelo) {
+            $score += 2;
+            $reasons[] = ['text' => 'Suelo ideal', 'type' => 'positive'];
+        } else {
+            $reasons[] = ['text' => 'Suelo no ideal', 'type' => 'negative'];
+        }
+    } else {
+        // Si no hay info de suelo, marcar negativo
+        $reasons[] = ['text' => 'Suelo no disponible', 'type' => 'negative'];
     }
-    
+
+    // Score por rango de clima (máximo 1 punto)
+    if ($temperatura >= $cultivo['t_min'] && $temperatura <= $cultivo['t_max']) {
+        $score += 1;
+        $reasons[] = ['text' => 'Temperatura actual dentro del rango ideal', 'type' => 'positive'];
+    } else {
+        $reasons[] = ['text' => 'Temperatura actual fuera del rango ideal', 'type' => 'negative'];
+    }
+
     return ['score' => $score, 'reasons' => $reasons];
 }
 
@@ -99,7 +87,7 @@ try {
     $mysqli = conectar_bd();
     
     // Obtener cultivos de la base de datos
-    $query = "SELECT id, nombre, clima, t_min, t_max, epoca_siembra, dias_germinacion, dias_caducidad, recomendaciones, suelo, estados 
+    $query = "SELECT id, nombre, clima, t_min, t_max, epoca_siembra, suelo, estados, recomendaciones 
               FROM productos 
               ORDER BY nombre";
     
@@ -152,6 +140,10 @@ try {
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
+/* Reason badges */
+.reason-positive{color:var(--green-3);font-weight:700}
+.reason-negative{color:#d9534f;font-weight:700}
+
 /* Page card styles already in general.css */
 .page-card{animation:scaleIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);}
 @keyframes scaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
@@ -486,110 +478,6 @@ small{color:var(--text-muted);}
     color: var(--text-primary);
     font-weight: 600;
 }
-
-/* Estilos para la línea de tiempo del ciclo de cultivo */
-.cycle-timeline {
-    margin-top: 16px;
-}
-
-.timeline-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px 0;
-    gap: 0;
-}
-
-.timeline-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    flex: 0 0 auto;
-}
-
-.step-marker {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 12px;
-    border: 3px solid;
-    background: var(--bg-card);
-    position: relative;
-    z-index: 2;
-}
-
-.germination-step {
-    border-color: #4CAF50;
-    background: linear-gradient(135deg, #4CAF50, #8BC34A);
-}
-
-.harvest-step {
-    border-color: #FF9800;
-    background: linear-gradient(135deg, #FF9800, #FFC107);
-}
-
-.preservation-step {
-    border-color: #2196F3;
-    background: linear-gradient(135deg, #2196F3, #03A9F4);
-}
-
-.step-icon {
-    font-size: 20px;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
-}
-
-.step-content {
-    text-align: center;
-    max-width: 100px;
-}
-
-.step-content h6 {
-    margin: 0 0 4px 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.step-content p {
-    margin: 0;
-    font-size: 11px;
-    color: var(--text-secondary);
-    line-height: 1.3;
-}
-
-.timeline-connector {
-    flex: 1;
-    height: 3px;
-    background: linear-gradient(90deg, var(--accent), var(--green-3));
-    border-radius: 2px;
-    margin: 0 15px;
-    margin-bottom: 30px;
-    position: relative;
-    z-index: 1;
-}
-
-@media (max-width: 600px) {
-    .timeline-container {
-        flex-direction: column;
-        gap: 20px;
-    }
-    
-    .timeline-connector {
-        width: 3px;
-        height: 30px;
-        margin: 0;
-        background: linear-gradient(180deg, var(--accent), var(--green-3));
-    }
-    
-    .step-content {
-        max-width: 150px;
-    }
-}
-
 .explicacion{font-size:12.5px;color:var(--text-secondary);margin-top:10px;}
 
 /* Special boxes */
@@ -682,7 +570,8 @@ small{color:var(--text-muted);}
                         ?>
                             <div class="metric-card" style="transform:none;opacity:1;" data-product="<?= htmlspecialchars($key) ?>">
                                 <h3><?= htmlspecialchars($cultivo['nombre']) ?></h3>
-                                <div class="value">Score: <?= htmlspecialchars($score) ?></div>
+                                <?php $percent = (int) round(($score / 10) * 100); ?>
+                                <div class="value">Compatibilidad con tu zona: <?= htmlspecialchars($percent) ?>%</div>
                                 <small>
                                     Clima: <?= htmlspecialchars($cultivo['clima']) ?> | 
                                     Rango: <?= htmlspecialchars($cultivo['t_min']) ?>–<?= htmlspecialchars($cultivo['t_max']) ?>°C | 
@@ -690,9 +579,13 @@ small{color:var(--text-muted);}
                                     Época: <?= htmlspecialchars($cultivo['epoca_siembra']) ?>
                                 </small>
                                 <?php if (!empty($reasons)): ?>
-                                    <ul style="margin:8px 0 0;padding-left:18px;color:var(--text-secondary);">
-                                        <?php foreach ($reasons as $reason): ?>
-                                            <li><?= htmlspecialchars($reason) ?></li>
+                                    <ul style="margin:8px 0 0;padding-left:18px;">
+                                        <?php foreach ($reasons as $reason): 
+                                            $text = htmlspecialchars(is_array($reason) ? $reason['text'] : $reason);
+                                            $type = is_array($reason) && isset($reason['type']) ? $reason['type'] : 'positive';
+                                            $class = $type === 'positive' ? 'reason-positive' : 'reason-negative';
+                                        ?>
+                                            <li class="<?= $class ?>"><?= $text ?></li>
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php endif; ?>
@@ -744,10 +637,6 @@ const cultivosData = {
             epoca: <?= json_encode($cultivo['epoca_siembra']) ?>,
             informacion: "Consulta las recomendaciones específicas para tu región"
         },
-        ciclo: {
-            diasGerminacion: <?= json_encode($cultivo['dias_germinacion']) ?>,
-            diasCaducidad: <?= json_encode($cultivo['dias_caducidad']) ?>
-        },
         cuidados: [
             <?= json_encode($cultivo['recomendaciones'] ?? 'Seguir las prácticas agrícolas recomendadas para la región') ?>
         ]
@@ -789,48 +678,14 @@ function mostrarModal(producto) {
         </div>
         
         <div class="detail-item">
-            <h4>⏱️ Ciclo de Cultivo</h4>
-            
-            <div class="cycle-timeline">
-                <div class="timeline-container">
-                    <div class="timeline-step">
-                        <div class="step-marker germination-step">
-                            <span class="step-icon">🌱</span>
-                        </div>
-                        <div class="step-content">
-                            <h6>Germinación</h6>
-                            <p>0 - ${data.ciclo.diasGerminacion} días</p>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-connector"></div>
-                    
-                    <div class="timeline-step">
-                        <div class="step-marker harvest-step">
-                            <span class="step-icon">🌾</span>
-                        </div>
-                        <div class="step-content">
-                            <h6>Cosecha</h6>
-                            <p>Día ${data.ciclo.diasGerminacion}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-connector"></div>
-                    
-                    <div class="timeline-step">
-                        <div class="step-marker preservation-step">
-                            <span class="step-icon">⏰</span>
-                        </div>
-                        <div class="step-content">
-                            <h6>Caducidad</h6>
-                            <p>${data.ciclo.diasCaducidad} días</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <h4>🔧 Cuidados y Recomendaciones</h4>
+            <ul>
+                ${Array.isArray(data.cuidados) ? 
+                    data.cuidados.map(cuidado => `<li>${cuidado}</li>`).join('') :
+                    `<li>${data.cuidados}</li>`
+                }
+            </ul>
         </div>
-        
-        
     `;
     
     document.getElementById('modalDetalles').style.display = 'flex';

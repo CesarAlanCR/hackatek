@@ -200,13 +200,35 @@ function getPlanificadorParams() {
 	};
 }
 
-document.getElementById('planificador-link').addEventListener('click', function(e) {
+document.getElementById('planificador-link').addEventListener('click', async function(e) {
 	e.preventDefault();
 	const params = getPlanificadorParams();
-	
-	console.log('📊 Parámetros enviados al planificador:', params);
-	
-	// Construye la querystring
+
+	console.log('📊 Parámetros enviados al planificador (inicial):', params);
+
+	// Si no tenemos tipo de suelo pero sí coordenadas, intentar obtenerlo desde el proxy INEGI
+	if ((!params.suelo || params.suelo === '') && params.lat && params.lon) {
+		try {
+			const soilUrl = `../includes/inegi_soil_proxy.php?lat=${encodeURIComponent(params.lat)}&lon=${encodeURIComponent(params.lon)}`;
+			const resp = await fetch(soilUrl);
+			if (resp.ok) {
+				const json = await resp.json();
+				if (json && (json.soilType || json.soil)) {
+					const soilType = json.soilType || json.soil;
+					window.appState = window.appState || {};
+					window.appState.currentSoil = soilType;
+					params.suelo = soilType;
+					console.log('🌱 Tipo de suelo obtenido antes de redirigir:', soilType);
+				}
+			} else {
+				console.warn('No se pudo obtener suelo (INEGI) antes de redirigir:', resp.status);
+			}
+		} catch (err) {
+			console.warn('Error al obtener tipo de suelo antes de redirigir:', err);
+		}
+	}
+
+	// Construye la querystring y redirige
 	const qs = Object.entries(params)
 		.filter(([k,v]) => v !== '') // Solo parámetros con valor
 		.map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
