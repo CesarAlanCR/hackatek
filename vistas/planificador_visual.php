@@ -479,6 +479,22 @@ small{color:var(--text-muted);}
     font-weight: 600;
 }
 
+/* Nota específica para árboles */
+.tree-notice {
+    background: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin: 12px 0;
+    font-size: 12px;
+    color: #FF6F00;
+    line-height: 1.4;
+}
+
+.tree-notice strong {
+    color: #E65100;
+}
+
 /* Estilos para la línea de tiempo del ciclo de cultivo */
 .cycle-timeline {
     margin-top: 16px;
@@ -726,6 +742,17 @@ const cultivosData = {
             
             // Generar descripción básica si no existe
             $descripcion = $cultivo['recomendaciones'] ?? 'Cultivo recomendado para las condiciones de tu región.';
+            
+            // Identificar si es árbol basándose en el nombre del cultivo
+            $arboles = ['mango', 'naranja', 'limón', 'aguacate', 'durazno', 'nuez', 'uva', 'aceituna', 'dátil', 'guayaba', 'cacao', 'café', 'palma de aceite'];
+            $esArbol = false;
+            $nombreLower = strtolower($cultivo['nombre']);
+            foreach ($arboles as $arbol) {
+                if (strpos($nombreLower, $arbol) !== false) {
+                    $esArbol = true;
+                    break;
+                }
+            }
         ?>
     "<?= $key ?>": {
         nombre: <?= json_encode($cultivo['nombre']) ?>,
@@ -753,6 +780,20 @@ const cultivosData = {
     // No hay cultivos disponibles
     <?php endif; ?>
 };
+
+// Función para detectar si un cultivo es un árbol
+function esArbol(nombreCultivo) {
+    const arboles = [
+        'nuez', 'mango', 'datil', 'aceituna', 'cacao', 'manzana', 
+        'durazno', 'uva', 'naranja', 'limon', 'cafe', 'palma de aceite',
+        'nuez pecanera', 'aguacate', 'papaya'
+    ];
+    
+    return arboles.some(arbol => 
+        nombreCultivo.toLowerCase().includes(arbol) || 
+        arbol.includes(nombreCultivo.toLowerCase())
+    );
+}
 
 // Función para mostrar modal
 function mostrarModal(producto) {
@@ -786,6 +827,10 @@ function mostrarModal(producto) {
         
         <div class="detail-item">
             <h4>⏱️ Ciclo de Cultivo</h4>
+            ${esArbol(data.nombre) ? 
+                `<p class="tree-notice">⚠️ <strong>Nota:</strong> Para árboles frutales, estos tiempos aplican cuando el árbol ya está adulto y dando fruto constante.</p>` : 
+                ''
+            }
             
             <div class="cycle-timeline">
                 <div class="timeline-container">
@@ -794,7 +839,7 @@ function mostrarModal(producto) {
                             <span class="step-icon">🌱</span>
                         </div>
                         <div class="step-content">
-                            <h6>Germinación</h6>
+                            <h6>${esArbol(data.nombre) ? 'Desarrollo del fruto' : 'Germinación'}</h6>
                             <p>0 - ${data.ciclo.diasGerminacion} días</p>
                         </div>
                     </div>
