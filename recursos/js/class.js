@@ -218,6 +218,10 @@ document.addEventListener('DOMContentLoaded', function(){
 			const weatherData = await fetchExtendedWeather(lat, lon, OWM_API_KEY);
 			updateWeatherUIFromData(weatherData);
 			
+			// Guardar datos climáticos completos en el estado global
+			window.appState.currentWeatherData = weatherData;
+			console.log('🌤️ Datos climáticos completos guardados:', weatherData);
+			
 			// Obtener y guardar tipo de suelo
 			try {
 				const soilData = await getINEGISoilType(lat, lon);

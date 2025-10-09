@@ -160,26 +160,48 @@
 <script>
 // Recoge los datos de clima/ubicación mostrados en index y los pasa al planificador
 function getPlanificadorParams() {
-	// Obtener temperatura del elemento
-	const tempText = document.getElementById('temp-value')?.textContent || '';
-	const tempMatch = tempText.match(/(\d+)/);
-	const tmax = tempMatch ? tempMatch[1] : '';
-	
-	// Obtener coordenadas y ciudad del estado global
+	// Obtener datos básicos de ubicación
 	const lat = window.appState?.lastCoords?.lat || '';
 	const lon = window.appState?.lastCoords?.lon || '';
 	const cityName = window.appState?.currentCity || '';
 	
-	// Extraer estado de la ciudad (formato: "Ciudad, Estado")
+	// Extraer ciudad y estado por separado
+	let ciudad = '';
 	let estado = '';
 	if (cityName) {
 		const parts = cityName.split(',');
 		if (parts.length > 1) {
+			ciudad = parts[0].trim();
 			estado = parts[1].trim();
+		} else {
+			ciudad = cityName.trim();
 		}
 	}
 	
-	// Obtener tipo de suelo si está guardado
+	// Obtener datos climáticos completos del estado global
+	const weatherData = window.appState?.currentWeatherData || {};
+	
+	// Extraer datos climáticos detallados
+	const temperatura = weatherData.main?.temp ? Math.round(weatherData.main.temp) : '';
+	const tempMax = weatherData.extended?.tempMax ? Math.round(weatherData.extended.tempMax) : 
+	                (weatherData.main?.temp_max ? Math.round(weatherData.main.temp_max) : '');
+	const tempMin = weatherData.extended?.tempMin ? Math.round(weatherData.extended.tempMin) : 
+	                (weatherData.main?.temp_min ? Math.round(weatherData.main.temp_min) : '');
+	const humedad = weatherData.main?.humidity || '';
+	const presion = weatherData.main?.pressure || '';
+	const visibilidad = weatherData.visibility ? (weatherData.visibility / 1000).toFixed(1) : '';
+	const velocidadViento = weatherData.wind?.speed ? Math.round(weatherData.wind.speed * 3.6) : '';
+	const direccionViento = weatherData.wind?.deg || '';
+	const nubosidad = weatherData.clouds?.all || '';
+	const condicionClimatica = weatherData.weather?.[0]?.description || '';
+	const iconoClima = weatherData.weather?.[0]?.icon || '';
+	
+	// Datos de pronóstico extendido
+	const probabilidadLluvia = weatherData.extended?.rainProbability ? Math.round(weatherData.extended.rainProbability) : '';
+	const precipitacionTotal = weatherData.extended?.precipitation ? weatherData.extended.precipitation.toFixed(1) : '';
+	const vientoMaximo = weatherData.extended?.maxWindSpeed ? Math.round(weatherData.extended.maxWindSpeed * 3.6) : '';
+	
+	// Datos adicionales disponibles en la app
 	const suelo = window.appState?.currentSoil || '';
 	
 	// Determinar temporada actual
@@ -190,13 +212,36 @@ function getPlanificadorParams() {
 	else if (m >= 6 && m <= 8) temporada = 'Verano';
 	
 	return {
-		clima: tempText,
+		// Ubicación detallada
 		lat: lat,
 		lon: lon,
-		tmax: tmax,
-		suelo: suelo,
+		ciudad: ciudad,
 		estado: estado,
-		temporada: temporada
+		ciudad_completa: cityName,
+		
+		// Clima actual detallado
+		temperatura: temperatura,
+		temp_max: tempMax,
+		temp_min: tempMin,
+		humedad: humedad,
+		presion: presion,
+		visibilidad: visibilidad,
+		viento_velocidad: velocidadViento,
+		viento_direccion: direccionViento,
+		viento_maximo: vientoMaximo,
+		nubosidad: nubosidad,
+		condicion: condicionClimatica,
+		icono_clima: iconoClima,
+		probabilidad_lluvia: probabilidadLluvia,
+		precipitacion_total: precipitacionTotal,
+		
+		// Información adicional
+		suelo: suelo,
+		temporada: temporada,
+		
+		// Mantener compatibilidad con versión anterior
+		clima: `${temperatura}°C`,
+		tmax: tempMax
 	};
 }
 

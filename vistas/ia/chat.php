@@ -40,6 +40,24 @@ $suelo = $_GET['suelo'] ?? '';
 $estado = $_GET['estado'] ?? '';
 $temporada = $_GET['temporada'] ?? '';
 
+// Nuevos parámetros climáticos detallados
+$ciudad = $_GET['ciudad'] ?? '';
+$ciudad_completa = $_GET['ciudad_completa'] ?? '';
+$temperatura = $_GET['temperatura'] ?? '';
+$temp_max = $_GET['temp_max'] ?? '';
+$temp_min = $_GET['temp_min'] ?? '';
+$humedad = $_GET['humedad'] ?? '';
+$presion = $_GET['presion'] ?? '';
+$visibilidad = $_GET['visibilidad'] ?? '';
+$viento_velocidad = $_GET['viento_velocidad'] ?? '';
+$viento_direccion = $_GET['viento_direccion'] ?? '';
+$viento_maximo = $_GET['viento_maximo'] ?? '';
+$nubosidad = $_GET['nubosidad'] ?? '';
+$condicion = $_GET['condicion'] ?? '';
+$icono_clima = $_GET['icono_clima'] ?? '';
+$probabilidad_lluvia = $_GET['probabilidad_lluvia'] ?? '';
+$precipitacion_total = $_GET['precipitacion_total'] ?? '';
+
 // Endpoint para procesar mensajes (POST)
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -72,15 +90,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	// Construir payload para OpenAI (gpt-4o, soporta imágenes)
 	$system_prompt = "Eres un asistente experto en agricultura. Responde solo sobre temas agrícolas, cultivos, plagas, clima, suelos, fertilización, imágenes de hojas y enfermedades. Si recibes una imagen, analiza y describe el estado agrícola de la planta.";
 	
-	// Añadir contexto de ubicación del usuario (si está disponible)
-	if ($estado || $clima || $suelo || $temporada) {
-		$system_prompt .= "\n\nContexto del usuario:";
-		if ($estado) $system_prompt .= "\n- Estado: $estado";
-		if ($clima) $system_prompt .= "\n- Clima actual: $clima";
-		if ($suelo) $system_prompt .= "\n- Tipo de suelo: $suelo";
-		if ($temporada) $system_prompt .= "\n- Temporada: $temporada";
-		if ($lat && $lon) $system_prompt .= "\n- Coordenadas: $lat, $lon";
-		$system_prompt .= "\n\nUsa esta información para personalizar tus recomendaciones agrícolas según las condiciones locales del usuario.";
+	// Añadir contexto completo de ubicación y clima del usuario
+	if ($estado || $ciudad || $temperatura || $suelo || $temporada) {
+		$system_prompt .= "\n\nCONTEXTO DETALLADO DE LA UBICACIÓN DEL USUARIO:";
+		
+		// Ubicación específica
+		if ($ciudad && $estado) {
+			$system_prompt .= "\n- Ubicación exacta: $ciudad, $estado, México";
+		} else if ($ciudad_completa) {
+			$system_prompt .= "\n- Ubicación: $ciudad_completa";
+		} else if ($estado) {
+			$system_prompt .= "\n- Estado: $estado";
+		}
+		
+		if ($lat && $lon) {
+			$system_prompt .= "\n- Coordenadas: $lat, $lon";
+		}
+		
+		// Condiciones climáticas actuales detalladas
+		if ($temperatura) {
+			$system_prompt .= "\n\nCLIMA ACTUAL ESPECÍFICO:";
+			$system_prompt .= "\n- Temperatura actual: {$temperatura}°C";
+			if ($temp_max) $system_prompt .= "\n- Temperatura máxima: {$temp_max}°C";
+			if ($temp_min) $system_prompt .= "\n- Temperatura mínima: {$temp_min}°C";
+			if ($condicion) $system_prompt .= "\n- Condición meteorológica: $condicion";
+		}
+		
+		if ($humedad) $system_prompt .= "\n- Humedad relativa: {$humedad}%";
+		if ($presion) $system_prompt .= "\n- Presión atmosférica: {$presion} hPa";
+		if ($visibilidad) $system_prompt .= "\n- Visibilidad: {$visibilidad} km";
+		
+		if ($viento_velocidad) {
+			$system_prompt .= "\n- Viento: {$viento_velocidad} km/h";
+			if ($viento_direccion) {
+				$direccion_texto = '';
+				$grados = (int)$viento_direccion;
+				if ($grados >= 337 || $grados < 23) $direccion_texto = 'Norte';
+				else if ($grados >= 23 && $grados < 68) $direccion_texto = 'Noreste';
+				else if ($grados >= 68 && $grados < 113) $direccion_texto = 'Este';
+				else if ($grados >= 113 && $grados < 158) $direccion_texto = 'Sureste';
+				else if ($grados >= 158 && $grados < 203) $direccion_texto = 'Sur';
+				else if ($grados >= 203 && $grados < 248) $direccion_texto = 'Suroeste';
+				else if ($grados >= 248 && $grados < 293) $direccion_texto = 'Oeste';
+				else if ($grados >= 293 && $grados < 337) $direccion_texto = 'Noroeste';
+				$system_prompt .= " desde el $direccion_texto ({$viento_direccion}°)";
+			}
+		}
+		
+		if ($nubosidad) {
+			$nub_desc = '';
+			$nub = (int)$nubosidad;
+			if ($nub <= 10) $nub_desc = 'despejado';
+			else if ($nub <= 25) $nub_desc = 'pocas nubes';
+			else if ($nub <= 50) $nub_desc = 'parcialmente nublado';
+			else if ($nub <= 75) $nub_desc = 'mayormente nublado';
+			else $nub_desc = 'completamente nublado';
+			$system_prompt .= "\n- Nubosidad: {$nubosidad}% ($nub_desc)";
+		}
+		
+		// Datos de pronóstico
+		if ($probabilidad_lluvia) {
+			$system_prompt .= "\n- Probabilidad de lluvia hoy: {$probabilidad_lluvia}%";
+		}
+		if ($precipitacion_total) {
+			$system_prompt .= "\n- Precipitación esperada: {$precipitacion_total} mm";
+		}
+		if ($viento_maximo) {
+			$system_prompt .= "\n- Viento máximo esperado: {$viento_maximo} km/h";
+		}
+		
+		// Información del suelo
+		if ($suelo) {
+			$system_prompt .= "\n\nTIPO DE SUELO:";
+			$system_prompt .= "\n- Clasificación del suelo: $suelo";
+		}
+		
+		// Temporada
+		if ($temporada) {
+			$system_prompt .= "\n- Temporada actual: $temporada";
+		}
+		
+		$system_prompt .= "\n\nIMPORTANTE: Usa TODA esta información específica para dar recomendaciones precisas y personalizadas. Cuando te pregunten sobre el clima, suelo, o ubicación, refiere ESPECÍFICAMENTE a los datos proporcionados de {$ciudad}, {$estado}. No digas que no tienes acceso a la información - la tienes completa aquí.";
 	}
 	
 	if ($rag_context) {
@@ -189,7 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		}
 		@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
 		.chat-header{
-			padding:20px 24px;
+			padding:16px 24px;
 			background:rgba(30, 41, 54, 0.6);
 			backdrop-filter:blur(10px);
 			border-bottom:1px solid var(--border);
@@ -200,13 +290,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		.chat-header h5{
 			margin:0;
 			color:var(--accent);
-			font-size:1.4rem;
+			font-size:1.3rem;
 			font-weight:700;
+			letter-spacing:-0.5px;
 			flex:1;
 			text-align:center;
-			/* visually center title similar to before, but keep back button z-index above */
+			/* Compensar el espacio del botón volver para centrado perfecto */
 			transform:translateX(-70px);
-			letter-spacing:-0.5px;
 		}
 		.btn-back{
 			background:rgba(124, 179, 66, 0.15);
@@ -538,6 +628,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		chatMessages.appendChild(wrapper);
 		chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
 	}
+
 	</script>
 	<script src="../../recursos/js/animations.js" defer></script>
 </body>
