@@ -103,7 +103,9 @@ document.addEventListener('DOMContentLoaded', function(){
 			const name = card.getAttribute('data-module') || card.id || 'Módulo';
 			openModal(name, 'Contenido inicial para el módulo "'+name+'". Aquí puedes añadir formularios, listados y gráficos.');
 		}
-		btn.addEventListener('click', handleOpen);
+		if (btn) {
+			btn.addEventListener('click', handleOpen);
+		}
 		card.addEventListener('keydown', function(e){
 			if(e.key === 'Enter' || e.key === ' '){
 				e.preventDefault(); handleOpen();
