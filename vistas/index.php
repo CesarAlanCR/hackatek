@@ -151,5 +151,6 @@
         window.WEATHERAPI_KEY = <?php echo json_encode($weatherApiKey); ?>;
 	</script>
 	<script src="../recursos/js/class.js" defer></script>
+	<script src="../recursos/js/animations.js" defer></script>
 </body>
 </html>

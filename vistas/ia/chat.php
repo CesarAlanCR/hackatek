@@ -149,60 +149,204 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<title>Chat IA Agrícola</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-..." crossorigin="anonymous">
 	<link rel="stylesheet" href="../../recursos/css/general.css">
 	<style>
-		/* Small overrides to integrate with bootstrap */
-		.chat-shell{max-height:calc(100vh - 140px)}
-		.typing-indicator{font-size:0.9rem;color:var(--muted);margin-left:8px}
+		.chat-container{
+			background:var(--bg-card);
+			border-radius:var(--radius-lg);
+			overflow:hidden;
+			box-shadow:var(--shadow-lg);
+			border:1px solid var(--border);
+			animation:slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+			max-width:1000px;
+			margin:0 auto;
+			display:flex;
+			flex-direction:column;
+			height:calc(100vh - 120px);
+			max-height:800px;
+			position:relative; /* allow absolute footer form */
+		}
+		@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+		.chat-header{
+			padding:20px 24px;
+			background:rgba(30, 41, 54, 0.6);
+			backdrop-filter:blur(10px);
+			border-bottom:1px solid var(--border);
+			display:flex;
+			align-items:center;
+			gap:16px;
+		}
+		.chat-header h5{
+			margin:0;
+			color:var(--accent);
+			font-size:1.4rem;
+			font-weight:700;
+			flex:1;
+			text-align:center;
+			letter-spacing:-0.5px;
+		}
+		.btn-back{
+			background:rgba(124, 179, 66, 0.15);
+			border:1px solid var(--border-hover);
+			color:var(--accent);
+			padding:10px 20px;
+			border-radius:var(--radius);
+			font-weight:600;
+			text-decoration:none;
+			transition:var(--transition-fast);
+		}
+		.btn-back:hover{
+			background:var(--accent);
+			color:white;
+			transform:translateX(-4px);
+		}
+		.typing-indicator{
+			font-size:0.85rem;
+			color:var(--text-muted);
+			padding:6px 12px;
+			background:rgba(124, 179, 66, 0.1);
+			border-radius:20px;
+			animation:pulse 1.5s ease-in-out infinite;
+		}
+		@keyframes pulse{0%, 100%{opacity:1}50%{opacity:0.5}}
+		.chat-messages{
+			flex:1;
+			overflow-y:auto;
+			padding:24px 24px 120px 24px; /* generous bottom padding for form overlay; JS will adjust */
+			background:var(--bg-secondary);
+			scrollbar-width:thin;
+			scrollbar-color:var(--border) var(--bg-secondary);
+			min-height:300px;
+		}
+		.chat-messages::-webkit-scrollbar{width:8px}
+		.chat-messages::-webkit-scrollbar-track{background:var(--bg-secondary)}
+		.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+		.chat-messages::-webkit-scrollbar-thumb:hover{background:var(--border-hover)}
+		.msg-wrapper{
+			display:flex;
+			margin-bottom:16px;
+			animation:messageSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		}
+		@keyframes messageSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+		.msg{
+			padding:14px 18px;
+			border-radius:var(--radius-lg);
+			max-width:75%;
+			word-wrap:break-word;
+			box-shadow:0 2px 8px rgba(0,0,0,0.15);
+			position:relative;
+		}
+		.msg.user{
+			background:linear-gradient(135deg, var(--green-4), var(--accent));
+			color:white;
+			margin-left:auto;
+			border-bottom-right-radius:4px;
+		}
+		.msg.assistant{
+			background:var(--bg-card);
+			color:var(--text-primary);
+			border:1px solid var(--border);
+			border-bottom-left-radius:4px;
+		}
+		.msg strong{
+			display:block;
+			margin-bottom:6px;
+			font-size:0.85rem;
+			opacity:0.8;
+		}
+		.chat-form{
+			padding:20px;
+			background:rgba(30, 41, 54, 0.9);
+			border-top:1px solid var(--border);
+			flex-shrink:0;
+			position:absolute; /* anchor at bottom to avoid layout shifts */
+			left:0;
+			right:0;
+			bottom:0;
+			z-index:5;
+		}
+		.chat-input{
+			background:var(--bg-secondary);
+			border:1px solid var(--border);
+			color:var(--text-primary);
+			border-radius:var(--radius);
+			padding:12px 16px;
+			transition:var(--transition-fast);
+			font-size:0.95rem;
+			resize:none;
+			overflow-y:hidden;
+		}
+		.chat-input:focus{
+			outline:none;
+			border-color:var(--accent);
+			box-shadow:0 0 0 3px var(--green-glow);
+		}
+		.chat-input::placeholder{color:var(--text-muted)}
+		.chat-send{
+			background:linear-gradient(135deg, var(--green-4), var(--accent));
+			color:white;
+			border:none;
+			padding:12px 24px;
+			border-radius:var(--radius);
+			font-weight:600;
+			transition:var(--transition-bounce);
+			cursor:pointer;
+		}
+		.chat-send:hover{
+			transform:scale(1.05);
+			box-shadow:var(--shadow-glow);
+		}
+		.btn-image{
+			background:rgba(124, 179, 66, 0.15);
+			border:1px solid var(--border);
+			color:var(--accent);
+			padding:10px;
+			border-radius:var(--radius);
+			transition:var(--transition-fast);
+			cursor:pointer;
+		}
+		.btn-image:hover{
+			background:var(--accent);
+			color:white;
+		}
+		.chat-preview-img{
+			border:2px solid var(--border);
+			border-radius:var(--radius);
+			box-shadow:var(--shadow);
+		}
 	</style>
 </head>
-<body class="bg-light">
-	<div class="container py-3">
-		<div class="row justify-content-center">
-			<div class="col-12 col-md-10">
-				<div class="card shadow-sm">
-					<div class="card-header d-flex align-items-center">
-						<button onclick="history.back()" class="btn btn-outline-success btn-sm me-3">← Volver</button>
-						<div class="flex-fill text-center">
-							<h5 class="mb-0">Asistente Agrícola</h5>
-						</div>
-						<div id="typing" class="typing-indicator ms-auto" style="display:none">IA está escribiendo...</div>
-					</div>
-					<div class="card-body p-0">
-						<div class="chat-shell d-flex flex-column">
-							<!-- area de mensajes con su propio scroll -->
-							<div class="chat-messages flex-grow-1 overflow-auto p-3" id="chat-messages" aria-live="polite"></div>
-
-							<form class="chat-form border-top" id="chat-form" enctype="multipart/form-data" autocomplete="off">
-								<div class="d-flex align-items-center gap-2 p-3">
-									<textarea name="message" id="message" class="chat-input form-control flex-grow-1 me-2" placeholder="Escribe tu pregunta agrícola..." required aria-label="Mensaje" rows="1" style="height:auto;min-height:44px;max-height:140px;overflow:auto;resize:none"></textarea>
-
-																		<!-- Custom small file button -->
-																		<label for="image" id="image-label" class="btn btn-outline-secondary btn-sm px-2 py-1 d-flex align-items-center justify-content-center" title="Adjuntar imagen">
-																				<!-- nicer inline SVG icon for image -->
-																				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-																					<path d="M14 3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12z" fill-opacity="0" stroke="currentColor" stroke-width="0.5"/>
-																					<path d="M14 3H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zM4.502 9.02a1.5 1.5 0 1 1 2.996 0 1.5 1.5 0 0 1-2.996 0zM2 12l3.5-4.5L9 12h5"/>
-																				</svg>
-																		</label>
-																		<button id="send-btn" type="submit" class="chat-send btn btn-success btn-sm px-3 py-1 d-flex align-items-center justify-content-center">Enviar</button>
-									<input type="file" name="image" id="image" class="d-none" accept="image/*" aria-label="Adjuntar imagen">
-								</div>
-								<div class="px-3 pb-3 d-flex align-items-center gap-3">
-									<img id="preview-img" class="chat-preview-img rounded border" style="display:none;max-width:160px;max-height:120px;object-fit:cover" alt="Preview imagen">
-								</div>
-							</form>
-						</div>
-					</div>
-				</div>
+<body>
+	<main class="container" style="padding:40px 0">
+		<div class="chat-container">
+			<div class="chat-header">
+				<a href="../index.php" class="btn-back">← Volver</a>
+				<h5>Asistente Agrícola IA</h5>
+				<div id="typing" class="typing-indicator" style="display:none">✍️ Escribiendo...</div>
 			</div>
-		</div>
-	</div>
+			
+			<div class="chat-messages" id="chat-messages" aria-live="polite"></div>
 
-	<!-- Bootstrap JS (optional) -->
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-..." crossorigin="anonymous"></script>
+			<form class="chat-form" id="chat-form" enctype="multipart/form-data" autocomplete="off">
+				<div style="display:flex;align-items:end;gap:12px">
+					<textarea name="message" id="message" class="chat-input" placeholder="Pregunta sobre cultivos, plagas, clima..." required aria-label="Mensaje" rows="1" style="flex:1;min-height:48px;max-height:140px"></textarea>
+					
+					<label for="image" class="btn-image" title="Adjuntar imagen" style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px">
+						<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+							<path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+							<path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+						</svg>
+					</label>
+					<input type="file" name="image" id="image" style="display:none" accept="image/*" aria-label="Adjuntar imagen">
+					
+					<button id="send-btn" type="submit" class="chat-send">Enviar</button>
+				</div>
+				<div style="margin-top:12px">
+					<img id="preview-img" class="chat-preview-img" style="display:none;max-width:160px;max-height:120px;object-fit:cover" alt="Preview imagen">
+				</div>
+			</form>
+		</div>
+	</main>
 	<script>
 	// Chat frontend (updated for bootstrap UI)
 	const chatForm = document.getElementById('chat-form');
@@ -217,35 +361,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		handleSelectedFile(file);
 	});
 
-	// etiqueta personalizada abre el selector
-	const imageLabel = document.getElementById('image-label');
-	imageLabel.addEventListener('click', function(e){
-		e.preventDefault();
-		imageInput.click();
-	});
-
 	// Drag & Drop sobre toda el area del chat
-	const chatShell = document.querySelector('.chat-shell');
+	const chatContainer = document.querySelector('.chat-container');
 	let dragCounter = 0;
-	chatShell.addEventListener('dragenter', (e) => {
+	chatContainer.addEventListener('dragenter', (e) => {
 		e.preventDefault();
 		dragCounter++;
-		chatShell.classList.add('border', 'border-secondary', 'bg-white');
+		chatContainer.style.borderColor = 'var(--accent)';
+		chatContainer.style.borderWidth = '2px';
 	});
-	chatShell.addEventListener('dragover', (e) => {
+	chatContainer.addEventListener('dragover', (e) => {
 		e.preventDefault();
 	});
-	chatShell.addEventListener('dragleave', (e) => {
+	chatContainer.addEventListener('dragleave', (e) => {
 		e.preventDefault();
 		dragCounter--;
 		if (dragCounter === 0) {
-			chatShell.classList.remove('border', 'border-secondary', 'bg-white');
+			chatContainer.style.borderColor = 'var(--border)';
+			chatContainer.style.borderWidth = '1px';
 		}
 	});
-	chatShell.addEventListener('drop', (e) => {
+	chatContainer.addEventListener('drop', (e) => {
 		e.preventDefault();
 		dragCounter = 0;
-		chatShell.classList.remove('border', 'border-secondary', 'bg-white');
+		chatContainer.style.borderColor = 'var(--border)';
+		chatContainer.style.borderWidth = '1px';
 		const dt = e.dataTransfer;
 		if (!dt || !dt.files || dt.files.length === 0) return;
 		const file = dt.files[0];
@@ -267,44 +407,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		reader.onload = function(e){
 			previewImg.src = e.target.result;
 			previewImg.style.display = 'inline-block';
-			// label muestra el nombre del archivo
-			imageLabel.textContent = file.name.length > 20 ? file.name.slice(0,18) + '…' : file.name;
 		};
 		reader.readAsDataURL(file);
 	}
 
-	// Auto-resize textarea: crece hasta max-height y luego muestra scroll interno
+	// Auto-resize textarea: crece hasta max-height (5 líneas aprox = 140px) y luego muestra scroll interno
 	const inputEl = document.getElementById('message');
-	const MAX_HEIGHT = 140; // px
-	const imageLabelEl = document.getElementById('image-label');
+	const MAX_HEIGHT = 140; // px (aproximadamente 5 líneas)
 	const sendBtn = document.getElementById('send-btn');
+	
 	function resizeTextarea(el){
 		el.style.height = 'auto';
 		const newHeight = Math.min(el.scrollHeight, MAX_HEIGHT);
 		el.style.height = newHeight + 'px';
 		// si excede max, mantener scroll interno
 		if (el.scrollHeight > MAX_HEIGHT) {
-			el.style.overflow = 'auto';
+			el.style.overflowY = 'auto';
 		} else {
-			el.style.overflow = 'hidden';
+			el.style.overflowY = 'hidden';
 		}
-		// ajustar altura de botones para que coincida con el textarea
+
+		// Ajustar padding-bottom del área de mensajes para que el textarea no empuje el contenido
 		try {
-			if (imageLabelEl) {
-				imageLabelEl.style.height = el.style.height;
-			}
-			if (sendBtn) {
-				sendBtn.style.height = el.style.height;
-			}
+			const formRect = chatForm.getBoundingClientRect();
+			const containerRect = document.querySelector('.chat-container').getBoundingClientRect();
+			// altura visible del form dentro del contenedor
+			const visibleFormHeight = formRect.height;
+			// añadir un pequeño margen
+			chatMessages.style.paddingBottom = (visibleFormHeight + 24) + 'px';
 		} catch (err) {
-			// ignore
+			// ignore en entornos sin layout completo
 		}
 	}
+	
 	// inicial
 	resizeTextarea(inputEl);
 	inputEl.addEventListener('input', function(e){
 		resizeTextarea(e.target);
 	});
+
+	// ResizeObserver para actualizar padding cuando el formulario cambia de tamaño
+	if (typeof ResizeObserver !== 'undefined') {
+		const ro = new ResizeObserver(() => {
+			try {
+				const formRect = chatForm.getBoundingClientRect();
+				chatMessages.style.paddingBottom = (formRect.height + 24) + 'px';
+			} catch (err) {
+				// ignore
+			}
+		});
+		ro.observe(chatForm);
+	}
 
 	// Enviar con Enter (Shift+Enter para nueva línea)
 	inputEl.addEventListener('keydown', function(e){
@@ -337,21 +490,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			typingEl.style.display = 'none';
 			addMessage('ia', 'Error al conectar con la IA.');
 		});
-		chatForm.reset();
-		// limpiar label y preview
-		imageLabel.textContent = '📷 Adjuntar';
-		previewImg.style.display = 'none';
+			chatForm.reset();
+			previewImg.style.display = 'none';
+			// reset textarea height and recalc padding so messages aren't hidden
+			inputEl.style.height = '48px';
+			resizeTextarea(inputEl);
+			// return focus to input for quick follow-up messages
+			inputEl.focus();
 	});
 
 	function addMessage(role, text, imageSrc){
 		const wrapper = document.createElement('div');
-		wrapper.className = role === 'user' ? 'd-flex justify-content-end' : 'd-flex justify-content-start';
+		wrapper.className = 'msg-wrapper';
 		const bubble = document.createElement('div');
-		bubble.className = 'msg ' + role + ' p-2';
+		bubble.className = 'msg ' + role;
 		const safeText = String(text).replace(/\n/g, '<br>');
-		let inner = (role==='user'? '<strong>Tú</strong><br>' : '<strong>IA</strong><br>') + safeText;
+		let inner = (role==='user'? '<strong>Tú</strong>' : '<strong>IA</strong>') + safeText;
 		if (imageSrc) {
-			inner += '<div class="mt-2"><img src="' + imageSrc + '" style="max-width:220px;max-height:160px;object-fit:cover;border-radius:6px;border:1px solid rgba(0,0,0,0.06)"></div>';
+			inner += '<div style="margin-top:8px"><img src="' + imageSrc + '" style="max-width:220px;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border)"></div>';
 		}
 		bubble.innerHTML = inner;
 		wrapper.appendChild(bubble);
@@ -359,5 +515,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
 	}
 	</script>
+	<script src="../../recursos/js/animations.js" defer></script>
 </body>
 </html>
