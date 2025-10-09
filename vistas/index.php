@@ -53,19 +53,24 @@
 			<article id="modulo-mercado" class="card module-card" data-module="Mercado" tabindex="0">
 				<h3>Mercado</h3>
 				<p>Precios, tendencias y canales de venta.</p>
-				<button class="btn btn-primary">Abrir</button>
+				<a href="mercado.php" class="btn btn-primary">Abrir</a>
 			</article>
 
 			<article id="modulo-chat-ia" class="card module-card" data-module="Chat IA" tabindex="0">
 				<h3>Chat IA</h3>
 				<p>Asistente para recomendaciones y diagnósticos.</p>
-				<button class="btn btn-primary">Abrir</button>
+				<a href="ia/chat.php" class="btn btn-primary">Abrir</a>
 			</article>
 
 			<article id="modulo-exportacion" class="card module-card" data-module="Exportación" tabindex="0">
 				<h3>Exportación</h3>
 				<p>Exporta datos de cultivo a CSV/Excel y reportes.</p>
-				<button class="btn btn-primary">Abrir</button>
+				<a href="exportacion.php" class="btn btn-primary">Abrir</a>
+			</article>
+			<article id="modulo-agua" class="card module-card" data-module="Cuerpos de agua" tabindex="0">
+				<h3>Cuerpos de agua</h3>
+				<p>Explora pozos, presas y cuerpos de agua de México con datos oficiales en un mapa interactivo.</p>
+				<a href="agua.php" class="btn btn-primary">Abrir</a>
 			</article>
 		</section>
 
