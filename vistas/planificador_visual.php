@@ -487,145 +487,109 @@ small{color:var(--text-muted);}
     font-weight: 600;
 }
 
-/* Estilos para el cronograma del cultivo */
-.cycle-chart {
+/* Estilos para la línea de tiempo del ciclo de cultivo */
+.cycle-timeline {
     margin-top: 16px;
-    padding: 16px;
-    background: var(--bg-card);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
 }
 
-.cycle-chart h5 {
-    margin: 0 0 16px 0;
-    color: var(--accent);
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.timeline {
+.timeline-container {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    padding: 0 20px;
-    position: relative;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+    gap: 0;
 }
 
-.timeline::before {
-    content: '';
-    position: absolute;
-    top: 20px;
-    left: 50px;
-    right: 50px;
-    height: 2px;
-    background: var(--border);
-    z-index: 1;
-}
-
-.timeline-item {
+.timeline-step {
     display: flex;
     flex-direction: column;
     align-items: center;
     position: relative;
-    z-index: 2;
+    flex: 0 0 auto;
 }
 
-.timeline-marker {
-    width: 40px;
-    height: 40px;
+.step-marker {
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    background: var(--bg-card);
-    border: 3px solid var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
-    margin-bottom: 8px;
-}
-
-.timeline-content {
-    text-align: center;
-    font-size: 12px;
-    color: var(--text-secondary);
-    max-width: 120px;
-}
-
-.timeline-content strong {
-    color: var(--text-primary);
-    display: block;
-    margin-bottom: 4px;
-}
-
-.progress-bars {
-    margin-top: 16px;
-}
-
-.progress-item {
     margin-bottom: 12px;
-}
-
-.progress-item label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background: var(--bg-secondary);
-    border-radius: 4px;
-    overflow: hidden;
+    border: 3px solid;
+    background: var(--bg-card);
     position: relative;
+    z-index: 2;
 }
 
-.progress-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.3s ease;
+.germination-step {
+    border-color: #4CAF50;
+    background: linear-gradient(135deg, #4CAF50, #8BC34A);
 }
 
-.germination-bar {
-    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+.harvest-step {
+    border-color: #FF9800;
+    background: linear-gradient(135deg, #FF9800, #FFC107);
 }
 
-.preservation-bar {
-    background: linear-gradient(90deg, #2196F3, #03A9F4);
+.preservation-step {
+    border-color: #2196F3;
+    background: linear-gradient(135deg, #2196F3, #03A9F4);
 }
 
-.progress-text {
+.step-icon {
+    font-size: 20px;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.step-content {
+    text-align: center;
+    max-width: 100px;
+}
+
+.step-content h6 {
+    margin: 0 0 4px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.step-content p {
+    margin: 0;
     font-size: 11px;
     color: var(--text-secondary);
-    margin-left: 8px;
+    line-height: 1.3;
+}
+
+.timeline-connector {
+    flex: 1;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--green-3));
+    border-radius: 2px;
+    margin: 0 15px;
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
 }
 
 @media (max-width: 600px) {
-    .timeline {
+    .timeline-container {
         flex-direction: column;
-        gap: 16px;
-        padding: 0;
+        gap: 20px;
     }
     
-    .timeline::before {
-        display: none;
+    .timeline-connector {
+        width: 3px;
+        height: 30px;
+        margin: 0;
+        background: linear-gradient(180deg, var(--accent), var(--green-3));
     }
     
-    .timeline-item {
-        flex-direction: row;
-        text-align: left;
-    }
-    
-    .timeline-marker {
-        margin-right: 12px;
-        margin-bottom: 0;
-    }
-    
-    .timeline-content {
-        max-width: none;
-        text-align: left;
+    .step-content {
+        max-width: 150px;
     }
 }
+
 .explicacion{font-size:12.5px;color:var(--text-secondary);margin-top:10px;}
 
 /* Special boxes */
@@ -639,11 +603,11 @@ small{color:var(--text-muted);}
     border:none;
     transition:var(--transition-fast);
 }
-/*#toggleDetallado:hover{
+#toggleDetallado:hover{
     background:var(--accent-hover) !important;
     transform:translateY(-1px);
     box-shadow:0 4px 12px var(--green-glow);
-}*/
+}
 
 /* Grid layout for metric summaries */
 .grid{
@@ -806,7 +770,7 @@ function mostrarModal(producto) {
     
     modalBody.innerHTML = `
         <div class="detail-item">
-            <h4>📋 Descripción</h4>
+            <h4>📋 Recomendaciones</h4>
             <p>${data.descripcion}</p>
         </div>
         
@@ -826,42 +790,41 @@ function mostrarModal(producto) {
         
         <div class="detail-item">
             <h4>⏱️ Ciclo de Cultivo</h4>
-            <p><strong>Días para germinación:</strong> ${data.ciclo.diasGerminacion} días</p>
-            <p><strong>Días de vida útil:</strong> ${data.ciclo.diasCaducidad} días</p>
             
-            <div class="cycle-chart">
-                <h5>📊 Cronograma del Cultivo</h5>
-                <div class="timeline">
-                    <div class="timeline-item germination">
-                        <div class="timeline-marker">🌱</div>
-                        <div class="timeline-content">
-                            <strong>Germinación</strong><br>
-                            ${data.ciclo.diasGerminacion} días
+            <div class="cycle-timeline">
+                <div class="timeline-container">
+                    <div class="timeline-step">
+                        <div class="step-marker germination-step">
+                            <span class="step-icon">🌱</span>
+                        </div>
+                        <div class="step-content">
+                            <h6>Germinación</h6>
+                            <p>0 - ${data.ciclo.diasGerminacion} días</p>
                         </div>
                     </div>
-                    <div class="timeline-item harvest">
-                        <div class="timeline-marker">🌾</div>
-                        <div class="timeline-content">
-                            <strong>Vida Útil</strong><br>
-                            ${data.ciclo.diasCaducidad} días después de cosecha
+                    
+                    <div class="timeline-connector"></div>
+                    
+                    <div class="timeline-step">
+                        <div class="step-marker harvest-step">
+                            <span class="step-icon">🌾</span>
+                        </div>
+                        <div class="step-content">
+                            <h6>Cosecha</h6>
+                            <p>Día ${data.ciclo.diasGerminacion}</p>
                         </div>
                     </div>
-                </div>
-                
-                <div class="progress-bars">
-                    <div class="progress-item">
-                        <label>Tiempo de germinación relativo:</label>
-                        <div class="progress-bar">
-                            <div class="progress-fill germination-bar" style="width: ${Math.min((data.ciclo.diasGerminacion / 365) * 100, 100)}%"></div>
+                    
+                    <div class="timeline-connector"></div>
+                    
+                    <div class="timeline-step">
+                        <div class="step-marker preservation-step">
+                            <span class="step-icon">⏰</span>
                         </div>
-                        <span class="progress-text">${data.ciclo.diasGerminacion} días</span>
-                    </div>
-                    <div class="progress-item">
-                        <label>Tiempo de conservación relativo:</label>
-                        <div class="progress-bar">
-                            <div class="progress-fill preservation-bar" style="width: ${Math.min((data.ciclo.diasCaducidad / 180) * 100, 100)}%"></div>
+                        <div class="step-content">
+                            <h6>Caducidad</h6>
+                            <p>${data.ciclo.diasCaducidad} días</p>
                         </div>
-                        <span class="progress-text">${data.ciclo.diasCaducidad} días</span>
                     </div>
                 </div>
             </div>
