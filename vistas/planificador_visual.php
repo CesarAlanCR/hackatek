@@ -545,12 +545,13 @@ small{color:var(--text-muted);}
 <main class="container" style="padding:40px 0">
   
     <div class="page-card" style="margin-top:18px;">
-        <div class="map-header" style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:rgba(30,41,54,0.6);border-bottom:1px solid var(--border);">
-            <a href="index.php" class="btn-back">← Volver</a>
-            <h5 style="margin:0;color:var(--accent);font-size:1.4rem;font-weight:700;flex:1;text-align:center;letter-spacing:-0.5px;">Recomendación Inteligente</h5>
-            <div style="width:100px"></div>
-        </div>
-        <section class="card in-view">
+        <section class="card in-view" style="padding:0;overflow:hidden;">
+            <div class="map-header" style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:rgba(30,41,54,0.6);">
+                <a href="index.php" class="btn-back">← Volver</a>
+                <h5 style="margin:0;color:var(--accent);font-size:1.4rem;font-weight:700;flex:1;text-align:center;letter-spacing:-0.5px;">Recomendación Inteligente</h5>
+                <div style="width:100px"></div>
+            </div>
+            <div style="padding:18px;">
             <?php if (!$conexionExitosa): ?>
                 <div class="alerta" style="background:rgba(220,38,38,0.1);color:#dc2626;padding:12px;border-radius:8px;margin-bottom:16px;">
                     <strong>Error de conexión:</strong> <?= htmlspecialchars($errorConexion) ?>
@@ -560,19 +561,7 @@ small{color:var(--text-muted);}
                     Contexto: Clima <?= htmlspecialchars($temperatura) ?>°C | Temp. Máxima <?= htmlspecialchars($temperatura) ?>°C | Suelo <?= htmlspecialchars($suelo ?: '—') ?> | Estado <?= htmlspecialchars($estado) ?> | Temporada <?= htmlspecialchars($temporada) ?>.
                 </div>
                 
-                <!-- Explicación del sistema de scoring -->
-                <div style="background:rgba(124,179,66,0.1);border:1px solid rgba(124,179,66,0.3);border-radius:8px;padding:12px;margin-bottom:16px;">
-                    <h6 style="margin:0 0 8px 0;color:var(--accent);font-size:0.9rem;font-weight:600;">📊 Sistema de Puntuación (Score)</h6>
-                    <div style="font-size:12px;color:var(--text-secondary);line-height:1.4;">
-                        <p style="margin:0 0 8px 0;"><strong>Máximo 10 puntos:</strong></p>
-                        <ul style="margin:0;padding-left:16px;">
-                            <li><strong>Temperatura (4 pts):</strong> Rango ideal vs temperatura actual</li>
-                            <li><strong>Estado/Región (3 pts):</strong> Compatibilidad geográfica</li>
-                            <li><strong>Temporada (3 pts):</strong> Época de siembra óptima</li>
-                        </ul>
-                        <p style="margin:8px 0 0 0;font-style:italic;">💡 Haz click en cualquier cultivo para ver detalles completos</p>
-                    </div>
-                </div>
+                <!-- (Bloque de explicación del score eliminado) -->
                 
                 <?php if (empty($recomendaciones)): ?>
                     <p style="font-size:13px;color:var(--text-muted);">No se encontraron cultivos compatibles con las condiciones actuales.</p>
@@ -608,6 +597,7 @@ small{color:var(--text-muted);}
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
+            </div>
         </section>
     </div>
     

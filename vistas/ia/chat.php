@@ -184,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			font-weight:700;
 			flex:1;
 			text-align:center;
-			/* larger nudge left to visually center title relative to the page */
+			/* visually center title similar to before, but keep back button z-index above */
 			transform:translateX(-70px);
 			letter-spacing:-0.5px;
 		}
@@ -197,6 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			font-weight:600;
 			text-decoration:none;
 			transition:var(--transition-fast);
+			z-index:10; /* ensure clickable above the header title */
 		}
 		.btn-back:hover{
 			background:var(--accent);
