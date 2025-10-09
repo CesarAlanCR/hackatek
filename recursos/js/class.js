@@ -7,15 +7,7 @@ document.addEventListener('DOMContentLoaded', function(){
 	const modal = document.getElementById('module-modal');
 	const modalTitle = document.getElementById('modal-title');
 	const modalBody = document.getElementById('modal-body');
-	const closeBtn = modal ? modal.querySelector('.modal-close') : null;
-	
-	console.log('🎯 Elementos encontrados:', {
-		cards: cards.length,
-		modal: !!modal,
-		modalTitle: !!modalTitle,
-		modalBody: !!modalBody,
-		closeBtn: !!closeBtn
-	});
+	const closeBtn = modal.querySelector('.modal-close');
     // Mapa y clima
 	const mapContainer = document.getElementById('weather-map');
 	const OWM_API_KEY = window.OWM_API_KEY || '';
@@ -41,11 +33,6 @@ document.addEventListener('DOMContentLoaded', function(){
 	});
 
 	function openModal(title, content){
-		if (!modal || !modalTitle || !modalBody) {
-			console.error('❌ Elementos del modal no encontrados');
-			return;
-		}
-		
 		modalTitle.textContent = title;
 		modalBody.innerHTML = '<p>'+content+'</p>';
 		modal.setAttribute('aria-hidden','false');
@@ -84,11 +71,6 @@ document.addEventListener('DOMContentLoaded', function(){
 	}
 
 	function closeModal(){
-		if (!modal) {
-			console.error('❌ Modal no encontrado para cerrar');
-			return;
-		}
-		
 		modal.setAttribute('aria-hidden','true');
 		// Desbloquear scroll
 		document.body.style.overflow = '';
@@ -117,11 +99,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
 	cards.forEach(card=>{
 		const btn = card.querySelector('button');
-		if (!btn) {
-			console.warn('⚠️ Card sin botón encontrado:', card);
-			return; // Saltar esta card si no tiene botón
-		}
-		
 		function handleOpen(){
 			const name = card.getAttribute('data-module') || card.id || 'Módulo';
 			openModal(name, 'Contenido inicial para el módulo "'+name+'". Aquí puedes añadir formularios, listados y gráficos.');
@@ -134,19 +111,10 @@ document.addEventListener('DOMContentLoaded', function(){
 		});
 	});
 
-	if (closeBtn) {
-		closeBtn.addEventListener('click', closeModal);
-	} else {
-		console.error('❌ Botón de cerrar modal no encontrado');
-	}
-	
-	if (modal) {
-		modal.addEventListener('click', function(e){
-			if(e.target === modal) closeModal();
-		});
-	} else {
-		console.error('❌ Modal no encontrado para agregar event listener');
-	}
+	closeBtn.addEventListener('click', closeModal);
+	modal.addEventListener('click', function(e){
+		if(e.target === modal) closeModal();
+	});
 	document.addEventListener('keydown', function(e){
 		if(e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false'){
 			closeModal();
