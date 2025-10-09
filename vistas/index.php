@@ -27,6 +27,8 @@
 			<p class="lead">Monitorea, planifica y actúa para mejorar el rendimiento de tus cultivos. Interfaz inicial con módulos para comenzar.</p>
 		</section>
 
+	
+
 		<!-- Preview: Imágenes y Clima -->
 		<section class="preview-clima">
 			<div class="preview-grid">
@@ -42,18 +44,22 @@
 						<li>Humedad: <span id="humidity-value">--</span></li>
 						<li>Última imagen: <span id="satellite-updated">--</span></li>
 					</ul>
-					<button class="btn btn-primary">Ver detalle</button>
+					<button id="btn-ver-detalle-clima" class="btn btn-primary">Ver detalle</button>
 				</div>
 			</div>
 		</section>
 
 		<section class="modules" aria-label="Módulos principales">
-			
+			<article id="modulo-clima" class="card module-card" data-module="Clima" tabindex="0">
+				<h3>Imagenes</h3>
+				<p>IA que reconoce imagenes de hojas afectadas para ver que pasa</p>
+				<button class="btn btn-primary">Abrir</button>
+			</article>
 
 			<article id="modulo-mercado" class="card module-card" data-module="Mercado" tabindex="0">
 				<h3>Mercado</h3>
 				<p>Precios, tendencias y canales de venta.</p>
-				<a href="mercado.php" class="btn btn-primary">Abrir</a>
+				<button class="btn btn-primary">Abrir</button>
 			</article>
 
 			<article id="modulo-chat-ia" class="card module-card" data-module="Chat IA" tabindex="0">
@@ -65,26 +71,41 @@
 			<article id="modulo-exportacion" class="card module-card" data-module="Exportación" tabindex="0">
 				<h3>Exportación</h3>
 				<p>Exporta datos de cultivo a CSV/Excel y reportes.</p>
-				<a href="exportacion.php" class="btn btn-primary">Abrir</a>
-			</article>
-			<article id="modulo-agua" class="card module-card" data-module="Cuerpos de agua" tabindex="0">
-				<h3>Cuerpos de agua</h3>
-				<p>Explora pozos, presas y cuerpos de agua de México con datos oficiales en un mapa interactivo.</p>
-				<a href="agua.php" class="btn btn-primary">Abrir</a>
+				<button class="btn btn-primary">Abrir</button>
 			</article>
 		</section>
 
-		<!-- Resumen rápido removido por solicitud del usuario -->
+		<section class="quick-stats">
+			<h3>Resumen rápido</h3>
+			<div class="stats-grid">
+				<div class="stat">
+					<strong>12</strong>
+					<span>Parcelas activas</span>
+				</div>
+				<div class="stat">
+					<strong>3</strong>
+					<span>Alertas hoy</span>
+				</div>
+				<div class="stat">
+					<strong>24%</strong>
+					<span>Agua usada / meta</span>
+				</div>
+				<div class="stat">
+					<strong>5</strong>
+					<span>Tareas pendientes</span>
+				</div>
+			</div>
+		</section>
 	</main>
 
 	<footer class="site-footer">
 		<div class="container">
-			<small>© <?php echo date('Y'); ?> Optilife - Derechos Reservados</small>
+			<small>© <?php echo date('Y'); ?> Hackatek - Proyecto de ejemplo</small>
 		</div>
 	</footer>
 
 	<!-- Modal simple -->
-	<div id="module-modal" class="modal" role="dialog" aria-hidden="true" aria-labelledby="modal-title">
+	<div id="module-modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modal-title">
 		<div class="modal-content">
 			<button class="modal-close" aria-label="Cerrar">×</button>
 			<h3 id="modal-title"></h3>
@@ -101,18 +122,33 @@
 	<?php
 		// Carga la API key desde un archivo de configuración centralizado.
 		// Nota: evita subir este archivo al repositorio (ver .gitignore).
-		$configPath = __DIR__ . '/../includes/owm_config.php';
+		$configPath = realpath(__DIR__ . '/../includes/owm_config.php');
 		$owmKey = '';
-		if (file_exists($configPath)) {
+        $weatherApiKey = '';
+		
+		if ($configPath && file_exists($configPath)) {
 			$config = include $configPath;
 			if (is_array($config) && isset($config['OWM_API_KEY'])) {
 				$owmKey = $config['OWM_API_KEY'];
 			}
+            if (is_array($config) && isset($config['WEATHERAPI_KEY'])) {
+                $weatherApiKey = $config['WEATHERAPI_KEY'];
+            }
+		}
+		
+		// Fallback en caso de que no se cargue la configuración
+		if (empty($owmKey)) {
+			$owmKey = 'e3f0790da98e5d2fa495d11bb819e9f1';
+		}
+		if (empty($weatherApiKey)) {
+			$weatherApiKey = 'ff26c6b8641d423e926224810250810';
 		}
 	?>
 	<script>
-		// Expone la API key de OpenWeatherMap al frontend (configurar variable de entorno OWM_API_KEY en el servidor)
+		// Expone la API key de OpenWeatherMap al frontend
 		window.OWM_API_KEY = <?php echo json_encode($owmKey); ?>;
+        // Expone la API key de WeatherAPI si está disponible
+        window.WEATHERAPI_KEY = <?php echo json_encode($weatherApiKey); ?>;
 	</script>
 	<script src="../recursos/js/class.js" defer></script>
 </body>
