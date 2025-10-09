@@ -79,206 +79,283 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" href="../recursos/css/general.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-/* Unificación con paleta oscura del index */
-body{margin:0;color:var(--text-primary);} /* fondo y fuente ya definidos en general.css */
-.container{max-width:1180px;margin:0 auto;padding:24px 28px;}
-.hero-dynamic{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:30px;padding:42px 50px 38px;background:linear-gradient(135deg,var(--bg-card) 0%, var(--bg-secondary) 100%);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow);position:relative;overflow:hidden;}
-.hero-dynamic:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 70% 28%,rgba(124,179,66,0.18),transparent 65%);pointer-events:none;}
-.hero-dynamic h1{margin:0 0 14px;font-size:clamp(1.8rem,3.6vw,2.8rem);letter-spacing:-1px;background:linear-gradient(135deg,var(--accent) 0%, var(--green-2) 85%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:800;line-height:1.15;}
-.hero-dynamic .intro{margin:0;max-width:640px;line-height:1.55;font-size:clamp(.95rem,1.08vw,1.05rem);color:var(--text-secondary);font-weight:500;}
-.badge-hero{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:10px 18px;border-radius:40px;font-size:.7rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;box-shadow:var(--shadow-glow);}
-.panel{border:1px solid var(--border);padding:22px 24px;border-radius:var(--radius-lg);margin-bottom:30px;background:var(--bg-card);box-shadow:var(--shadow);position:relative;overflow:hidden;}
-.panel h2{margin-top:0;font-size:1.15rem;letter-spacing:.5px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-label{display:block;margin-top:14px;font-weight:600;font-size:13px;color:var(--text-secondary);letter-spacing:.4px;}
-select,input[type=date]{padding:10px 12px;width:300px;max-width:100%;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg-secondary);color:var(--text-primary);outline:none;transition:var(--transition-fast);}
-select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(102,187,106,0.15);}
-/* Métricas oscuras alineadas al index */
-.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;margin:6px 0 6px;}
-.metric-card{position:relative;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px 14px;box-shadow:var(--shadow);overflow:hidden;isolation:isolate;transform:translateY(14px) scale(.96);opacity:0;transition:.6s cubic-bezier(.2,.8,.25,1);}
-.metric-card.active{transform:translateY(0) scale(1);opacity:1;box-shadow:var(--shadow-glow);}
-.metric-card:before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--green-3),var(--accent));opacity:.65;}
-.metric-card h3{margin:0 0 6px;font-size:.7rem;letter-spacing:.55px;background:linear-gradient(120deg,var(--accent) 0%,var(--green-2) 90%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:800;text-transform:uppercase;}
-.metric-card .value{font-size:1.05rem;font-weight:700;color:var(--accent);letter-spacing:.5px;}
-.metric-card small{display:block;margin-top:4px;font-size:.6rem;color:var(--text-muted);letter-spacing:.5px;}
-.metric-card.window{background:linear-gradient(145deg,var(--bg-card-hover) 0%, rgba(255,200,124,0.07) 100%);}
-.metric-card.shelf{background:linear-gradient(145deg,var(--bg-card-hover) 0%, rgba(144,202,249,0.10) 100%);}
-/* Alertas adaptadas */
-.alerta{background:rgba(255,152,0,0.10);padding:10px 12px;border-left:4px solid #ff9800;margin:6px 0;border-radius:6px;font-size:12px;color:var(--text-secondary);}
-.ok{background:rgba(46,125,50,0.15);padding:10px 12px;border-left:4px solid var(--accent);margin:6px 0;border-radius:6px;font-size:12px;color:var(--text-secondary);}
-.info{background:rgba(25,118,210,0.15);padding:10px 12px;border-left:4px solid #1976d2;margin:6px 0;border-radius:6px;font-size:12px;color:var(--text-secondary);}
-/* Timeline clara → oscura */
-.timeline{display:flex;align-items:center;gap:12px;margin:12px 0 6px;flex-wrap:wrap;}
-.t-step{background:var(--bg-card-hover);border:1px solid var(--border);padding:12px 14px;border-radius:12px;min-width:160px;position:relative;box-shadow:0 4px 14px rgba(0,0,0,0.25);}
-.t-step h5{margin:0 0 6px;font-size:.68rem;font-weight:700;letter-spacing:.5px;color:var(--accent);}
-.t-step p{margin:0;font-size:.7rem;color:var(--text-secondary);}
-.connector{flex:1;height:4px;background:linear-gradient(90deg,var(--green-3),var(--accent));border-radius:2px;min-width:40px;position:relative;opacity:.55;}
-.ventana-box{background:linear-gradient(135deg,var(--bg-card-hover),rgba(255,200,124,0.08));}
-.anaquel-box{background:linear-gradient(135deg,var(--bg-card-hover),rgba(144,202,249,0.12));}
-.help-toggle{cursor:pointer;font-size:.7rem;color:var(--accent);text-decoration:underline;margin-top:6px;}
-#ayudaConceptos{display:none;background:var(--bg-card-hover);border:1px dashed var(--border);padding:14px 16px;border-radius:12px;margin-top:12px;font-size:.68rem;color:var(--text-secondary);}
-/* Charts adaptados */
-.chart-wrapper{display:flex;flex-wrap:wrap;gap:34px;}
-.chart-box{flex:1 1 380px;min-width:320px;background:var(--bg-card-hover);padding:20px;border-radius:16px;border:1px solid var(--border);position:relative;box-shadow:var(--shadow);}
-.chart-box h4{margin:0 0 12px;font-size:.78rem;font-weight:700;letter-spacing:.45px;color:var(--accent);}
-.explicacion{font-size:.66rem;color:var(--text-secondary);margin-top:10px;}
-.progress-wrap{background:rgba(255,255,255,0.06);border-radius:10px;overflow:hidden;height:30px;position:relative;}
-.progress-bar{height:100%;background:linear-gradient(90deg,var(--green-4),var(--accent));width:0%;transition:width 1s;}
-.progress-label{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:.65rem;font-weight:700;color:var(--text-primary);line-height:30px;letter-spacing:.4px;}
-.badge{display:inline-block;padding:5px 12px;border-radius:24px;font-size:.55rem;font-weight:700;letter-spacing:.4px;background:var(--green-4);color:#fff;}
-/* Toggle avanzado botón (reutiliza estilos .btn) */
-#toggleDetallado{margin-top:18px;}
-#toggleDetallado.btn-primary{box-shadow:0 4px 16px rgba(124,179,66,0.35);}
-#toggleDetallado.btn-primary:hover{box-shadow:var(--shadow-glow);}
-/* Avanzados (ya añadidos antes) */
-.detalles-avanzados-wrapper{margin-top:28px;display:flex;flex-direction:column;gap:28px;}
-.detalles-avanzados-wrapper .panel{background:linear-gradient(135deg,var(--bg-card) 0%, var(--bg-secondary) 100%);border:1px solid var(--border);color:var(--text-primary);box-shadow:var(--shadow);}
-.detalles-avanzados-wrapper .panel h2, .detalles-avanzados-wrapper .panel h3, .detalles-avanzados-wrapper .panel h4{background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.4px;}
-.fade-seq{opacity:0;transform:translateY(18px);transition:.6s cubic-bezier(.2,.8,.25,1);}
-.fade-seq.active{opacity:1;transform:translateY(0);}
-.detalle-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);padding:16px 18px;border-radius:var(--radius);position:relative;overflow:hidden;transition:var(--transition-fast);}
-.detalle-card:before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(124,179,66,0.14),transparent 70%);opacity:0;transition:opacity .4s ease;}
-.detalle-card:hover:before{opacity:1;}
-.detalle-card:hover{border-color:var(--border-hover);transform:translateY(-4px);}
-.detalle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;}
-.detalle-meta{font-size:.6rem;color:var(--text-muted);margin-top:6px;}
-.detalle-valor{font-weight:600;color:var(--accent);font-size:.8rem;}
-.badge-frio{display:inline-block;padding:6px 12px;border-radius:24px;font-size:.55rem;font-weight:700;letter-spacing:.6px;background:var(--green-4);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);}
-.timeline-modern{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;}
-.timeline-modern .t-item{flex:1 1 160px;min-width:160px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;position:relative;overflow:hidden;}
-.visual-charts-flex{display:flex;flex-wrap:wrap;gap:24px;margin-top:10px;}
-.visual-box{flex:1 1 300px;min-width:260px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;position:relative;overflow:hidden;}
-.visual-box h4{margin:0 0 10px;font-size:.75rem;letter-spacing:.5px;color:var(--accent);font-weight:700;}
-.visual-box:before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,var(--green-4),var(--accent));opacity:.6;}
-.visual-progress{height:24px;background:rgba(255,255,255,.06);border-radius:14px;overflow:hidden;position:relative;margin-top:4px;}
-.visual-progress .bar{height:100%;width:0;background:linear-gradient(90deg,var(--green-4),var(--accent));transition:width .9s cubic-bezier(.2,.8,.25,1);}
-.visual-progress .label{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:.55rem;font-weight:600;color:var(--text-primary);line-height:24px;}
-@media (max-width:760px){.visual-box{min-width:100%;}.detalle-grid{grid-template-columns:1fr;}}
+/* Page card styles already in general.css */
+.page-card{animation:scaleIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);}
+@keyframes scaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+
+/* Btn-back matching agua.php style */
+.btn-back{
+    background:rgba(124, 179, 66, 0.15);
+    border:1px solid var(--border-hover);
+    color:var(--accent);
+    padding:10px 20px;
+    border-radius:var(--radius);
+    font-weight:600;
+    text-decoration:none;
+    transition:var(--transition-fast);
+}
+.btn-back:hover{
+    background:var(--accent);
+    color:white;
+    transform:translateX(-4px);
+}
+
+/* Hero optimized for page-card structure */
+.hero-dynamic{
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:30px;
+    padding:24px;background:var(--bg-secondary);border-radius:var(--radius);
+    position:relative;overflow:hidden;
+}
+.hero-dynamic .intro{margin:0;max-width:500px;line-height:1.45;color:var(--text-secondary);}
+.badge-hero{
+    display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;
+    padding:8px 14px;border-radius:20px;font-size:.75rem;font-weight:600;
+    letter-spacing:.8px;text-transform:uppercase;
+}
+
+/* Progress ring */
+.ring-wrap{display:flex;align-items:center;gap:24px;justify-content:center;}
+.progress-ring{width:120px;height:120px;position:relative;}
+.progress-ring svg{transform:rotate(-90deg);}
+.progress-ring .pr-bg{stroke:var(--border);stroke-width:10;fill:none;}
+.progress-ring .pr-val{stroke:var(--accent);stroke-width:10;fill:none;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.25,1);}
+.progress-ring .center-label{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:.85rem;font-weight:700;color:var(--text-primary);letter-spacing:.5px;
+}
+
+/* Form controls using general.css patterns */
+.controls label{
+    display:flex;flex-direction:column;font-size:.85rem;font-weight:600;
+    color:var(--text-primary);padding:8px 0;
+}
+.controls input, .controls select{
+    margin-top:4px;padding:10px 12px;
+    border:1px solid var(--border);border-radius:var(--radius);
+    background:var(--bg-secondary);color:var(--text-primary);
+    transition:var(--transition-fast);
+}
+.controls input:focus, .controls select:focus{
+    outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--green-glow);
+}
+
+/* Form row layout */
+.form-row{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:20px;
+    margin-bottom:16px;
+}
+@media (max-width:768px){
+    .form-row{grid-template-columns:1fr;gap:12px;}
+}
+
+/* Buttons with dark theme integration */
+.btn, button{
+    margin-top:18px;padding:10px 22px;
+    background:var(--accent);color:white;
+    border:none;border-radius:var(--radius);cursor:pointer;
+    font-weight:600;letter-spacing:.4px;text-decoration:none;
+    display:inline-block;transition:var(--transition-fast);
+    position:relative;overflow:hidden;
+}
+.btn:hover, button:hover{
+    background:var(--accent-hover);
+    transform:translateY(-1px);
+    box-shadow:0 4px 12px var(--green-glow);
+}
+.btn-secondary{
+    background:var(--bg-primary);
+    border:1px solid var(--border);
+    color:var(--text-primary);
+}
+.btn-secondary:hover{
+    background:var(--bg-secondary);
+    border-color:var(--accent);
+    color:var(--accent);
+}
+
+/* Metrics grid */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:16px 0;}
+.metric-card{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:14px 16px;transition:var(--transition);
+    transform:translateY(14px) scale(.96);opacity:0;
+}
+.metric-card.active{transform:translateY(0) scale(1);opacity:1;}
+.metric-card h3{margin:0 0 6px;font-size:.82rem;color:var(--accent);font-weight:700;text-transform:uppercase;}
+.metric-card .value{font-size:1.15rem;font-weight:700;color:var(--text-primary);}
+.metric-card small{display:block;margin-top:2px;font-size:.65rem;color:var(--text-muted);}
+
+/* Alert styles using CSS variables */
+.alerta{background:rgba(255,152,0,0.1);padding:10px 12px;border-left:4px solid #ff9800;margin:6px 0;border-radius:4px;font-size:13px;color:var(--text-primary);}
+.ok{background:rgba(76,175,80,0.1);padding:10px 12px;border-left:4px solid #4caf50;margin:6px 0;border-radius:4px;font-size:13px;color:var(--text-primary);}
+.info{background:rgba(33,150,243,0.1);padding:10px 12px;border-left:4px solid #2196f3;margin:6px 0;border-radius:4px;font-size:13px;color:var(--text-primary);}
+
+/* Chart boxes */
+.chart-wrapper{display:flex;flex-wrap:wrap;gap:24px;}
+.chart-box{
+    flex:1 1 380px;min-width:320px;background:var(--bg-secondary);
+    padding:18px;border-radius:var(--radius);border:1px solid var(--border);
+}
+.chart-box h4{margin:0 0 12px;font-size:15px;font-weight:600;color:var(--text-primary);}
+
+/* Progress bars */
+.progress-wrap{background:var(--bg-secondary);border-radius:8px;overflow:hidden;height:30px;position:relative;}
+.progress-bar{height:100%;background:var(--accent);width:0%;transition:width 1s;} 
+.progress-label{
+    position:absolute;top:0;left:50%;transform:translateX(-50%);
+    font-size:13px;font-weight:600;color:var(--text-primary);line-height:30px;
+}
+
+/* Timeline */
+.timeline{display:flex;align-items:center;gap:10px;margin:10px 0 4px;flex-wrap:wrap;}
+.t-step{
+    background:var(--bg-card);border:1px solid var(--border);
+    padding:10px 12px;border-radius:10px;min-width:160px;
+}
+.t-step h5{margin:0 0 6px;font-size:13px;font-weight:700;color:var(--text-primary);}
+.t-step p{margin:0;font-size:12.5px;color:var(--text-secondary);}
+.connector{flex:1;height:4px;background:var(--border);border-radius:2px;min-width:40px;}
+
+/* Badges */
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+.b-riesgo-alto{background:#d32f2f;color:#fff;}
+.b-riesgo-medio{background:#f9a825;color:#212121;}
+.b-riesgo-bajo{background:#2e7d32;color:#fff;}
+
+.help-toggle{cursor:pointer;font-size:12.5px;color:var(--accent);text-decoration:underline;margin-top:6px;}
+#ayudaConceptos{
+    display:none;background:var(--bg-secondary);border:1px dashed var(--border);
+    padding:12px 14px;border-radius:10px;margin-top:10px;font-size:12.5px;color:var(--text-secondary);
+}
+
+/* Additional dark theme improvements */
+.metric-card.window{background:var(--bg-card);border-color:var(--accent);}
+.metric-card.shelf{background:var(--bg-card);border-color:var(--green-3);}
+.metric-card.cold-ok{background:var(--bg-card);border-color:var(--green-2);}
+.metric-card.cold-mid{background:var(--bg-card);border-color:#ffe082;}
+.metric-card.cold-low{background:var(--bg-card);border-color:#ff8a80;}
+
+/* Table styles for dark theme */
+table{background:var(--bg-secondary);color:var(--text-primary);border-radius:var(--radius);overflow:hidden;}
+th, td{padding:8px 12px;border-bottom:1px solid var(--border);}
+th{background:var(--bg-primary);color:var(--accent);font-weight:600;}
+
+/* Small text elements */
+small{color:var(--text-muted);}
+.explicacion{font-size:12.5px;color:var(--text-secondary);margin-top:10px;}
+
+/* Special boxes */
+.ventana-box{background:var(--bg-card);border:1px solid var(--accent);}
+.anaquel-box{background:var(--bg-card);border:1px solid var(--green-3);}
+
+/* Special buttons in content */
+#toggleDetallado{
+    background:var(--accent) !important;
+    color:white !important;
+    border:none;
+    transition:var(--transition-fast);
+}
+#toggleDetallado:hover{
+    background:var(--accent-hover) !important;
+    transform:translateY(-1px);
+    box-shadow:0 4px 12px var(--green-glow);
+}
+
+/* Grid layout for metric summaries */
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:16px;
+    margin:16px 0;
+}
+.dato{
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:12px;
+    text-align:center;
+}
+.dato strong{
+    display:block;
+    font-size:1.2rem;
+    color:var(--accent);
+    margin-bottom:4px;
+}
+.dato span{
+    font-size:0.85rem;
+    color:var(--text-secondary);
+}
+
+@media (max-width:680px){
+    .chart-box{min-width:100%;}
+    .timeline{flex-direction:column;}
+    .connector{display:none;}
+}
 </style>
 </head>
 <body>
-<!doctype html>
-<html lang="es">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Mapa - Cuerpos de agua</title>
-    <link rel="stylesheet" href="../recursos/css/general.css">
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-    <style>
-        .map-container{
-            background:var(--bg-card);
-            border-radius:var(--radius-lg);
-            overflow:hidden;
-            box-shadow:var(--shadow-lg);
-            border:1px solid var(--border);
-            animation:scaleIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        @keyframes scaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
-        .map-header{
-            padding:20px 24px;
-            background:rgba(30, 41, 54, 0.6);
-            backdrop-filter:blur(10px);
-            border-bottom:1px solid var(--border);
-            display:flex;
-            align-items:center;
-            gap:16px;
-        }
-        .map-header h5{
-            margin:0;
-            color:var(--accent);
-            font-size:1.4rem;
-            font-weight:700;
-            flex:1;
-            text-align:center;
-            letter-spacing:-0.5px;
-        }
-        .btn-back{
-            background:rgba(124, 179, 66, 0.15);
-            border:1px solid var(--border-hover);
-            color:var(--accent);
-            padding:10px 20px;
-            border-radius:var(--radius);
-            font-weight:600;
-            text-decoration:none;
-            transition:var(--transition-fast);
-        }
-        .btn-back:hover{
-            background:var(--accent);
-            color:white;
-            transform:translateX(-4px);
-        }
-        #map{width:100%;height:75vh;background:var(--bg-secondary)}
-        .leaflet-popup-content-wrapper{
-            background:var(--bg-card);
-            color:var(--text-primary);
-            border-radius:var(--radius);
-            box-shadow:var(--shadow-lg);
-        }
-        .leaflet-popup-tip{background:var(--bg-card)}
-        .c1, .c2{
-            background:var(--accent);
-            border:2px solid var(--bg-card);
-            box-shadow:0 0 12px var(--green-glow);
-            border-radius:50%;
-        }
-        .c2{background:var(--green-3)}
-    </style>
-</head>
-<main class="container">
-    <section class="hero" style="padding:50px 0 30px;">
-        <h2 style="margin-bottom:18px;">Planificador Visual de Cosecha</h2>
-            </section>
-<div class="panel">
-    <form method="POST">
-        <label for="cultivo">Cultivo</label>
-        <select name="cultivo" id="cultivo">
-            <option value="manzana" selected>Manzana</option>
-            <option value="aguacate" disabled>Aguacate (próximo)</option>
-            <option value="alfalfa" disabled>Alfalfa (próximo)</option>
-            <option value="avena" disabled>Avena (próximo)</option>
-            <option value="calabaza" disabled>Calabaza (próximo)</option>
-            <option value="cana_de_azucar" disabled>Caña de Azúcar (próximo)</option>
-            <option value="cebolla" disabled>Cebolla (próximo)</option>
-            <option value="chile_jalapeno" disabled>Chile Jalapeño (próximo)</option>
-            <option value="frijol" disabled>Frijol (próximo)</option>
-            <option value="maiz" disabled>Maíz (próximo)</option>
-            <option value="papa" disabled>Papa (próximo)</option>
-            <option value="tomate" disabled>Tomate (próximo)</option>
-            <option value="trigo" disabled>Trigo (próximo)</option>
-            <option value="uva" disabled>Uva (próximo)</option>
-        </select>
-        <small style="display:block;color:var(--text-muted);margin-top:4px;">Solo Manzana disponible por ahora. Los demás cultivos están en desarrollo.</small>
-        <label for="variedad_id">Variedad</label>
-        <select name="variedad_id" id="variedad_id" required>
-            <option value="">-- Selecciona variedad --</option>
-            <?php foreach($variedades as $v): ?>
-                <option value="<?= htmlspecialchars((string)$v['id']) ?>" <?= (isset($variedad_id) && $variedad_id == $v['id']) ? 'selected' : '' ?>><?= htmlspecialchars($v['nombre_variedad']) ?></option>
-            <?php endforeach; ?>
-        </select>
-        <label for="fecha_floracion">Fecha Floración</label>
-        <input type="date" name="fecha_floracion" id="fecha_floracion" value="<?= htmlspecialchars($_POST['fecha_floracion'] ?? '') ?>" required />
-    <button type="submit" name="accion" value="calcular" class="btn">Ver estimación</button>
-    <button type="submit" name="accion" value="actualizar_clima" class="btn btn-secondary">Actualizar clima</button>
-    </form>
-    <?php if($mensaje): ?><div class="alerta"><?= htmlspecialchars($mensaje) ?></div><?php endif; ?>
-    <div class="help-toggle" onclick="document.getElementById('ayudaConceptos').style.display = document.getElementById('ayudaConceptos').style.display==='none'?'block':'none';">¿Qué significan las horas frío y la ventana de cosecha?</div>
-    <div id="ayudaConceptos">
-        <strong>Horas frío:</strong> Son horas con temperatura baja (0°C a 7°C) necesarias para que el árbol cumpla su ciclo y la fruta alcance calidad óptima. <br/>
-        <strong>Ventana de cosecha:</strong> Periodo recomendado para cortar la fruta: demasiado pronto falta desarrollo; demasiado tarde puede perder firmeza. <br/>
-        <strong>Ajuste por frío:</strong> Si el frío acumulado es menor al esperado se retrasa un poco la fecha estimada. <br/>
-        <em>Consejo:</em> Usa "Actualizar clima" si pasaron varias horas o días desde la última consulta.
+<main class="container" style="padding:40px 0">
+    <div class="page-card">
+        <div class="page-header">
+        <a href="index.php" class="btn-back">← Volver</a>
+        <h2>Planificador Visual de Cosecha</h2>
+      </div>
+        <section class="card">
+            
+            <form method="POST" class="controls">
+                <div class="form-row">
+                    <label for="cultivo">
+                        Cultivo
+                        <select name="cultivo" id="cultivo">
+                            <option value="manzana" selected>🍎 Manzana</option>
+                            <option value="aguacate" disabled>🥑 Aguacate (próximo)</option>
+                            <option value="frijol" disabled>🫘 Frijol (próximo)</option>
+                            <option value="trigo" disabled>🌾 Trigo (próximo)</option>
+                            <option value="maiz" disabled>🌽 Maíz (próximo)</option>
+                            <option value="tomate" disabled>🍅 Tomate (próximo)</option>
+                            <option value="chile" disabled>🌶️ Chile (próximo)</option>
+                        </select>
+                        <small style="display:block;color:var(--text-muted);margin-top:4px;">Solo manzana habilitada.</small>
+                    </label>
+                    <label for="variedad_id">
+                        Variedad
+                        <select name="variedad_id" id="variedad_id" required>
+                            <option value="">-- Selecciona variedad --</option>
+                            <?php foreach($variedades as $v): ?>
+                                <option value="<?= htmlspecialchars((string)$v['id']) ?>" <?= (isset($variedad_id) && $variedad_id == $v['id']) ? 'selected' : '' ?>><?= htmlspecialchars($v['nombre_variedad']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <label for="fecha_floracion">
+                        Fecha Floración
+                        <input type="date" name="fecha_floracion" id="fecha_floracion" value="<?= htmlspecialchars($_POST['fecha_floracion'] ?? '') ?>" required />
+                    </label>
+                </div>
+                <button type="submit" name="accion" value="calcular" class="btn">Ver estimación</button>
+                <button type="submit" name="accion" value="actualizar_clima" class="btn btn-secondary">Actualizar clima</button>
+            </form>
+            <?php if($mensaje): ?><div class="alerta"><?= htmlspecialchars($mensaje) ?></div><?php endif; ?>
+            <div class="help-toggle" onclick="document.getElementById('ayudaConceptos').style.display = document.getElementById('ayudaConceptos').style.display==='none'?'block':'none';">¿Qué significan las horas frío y la ventana de cosecha?</div>
+            <div id="ayudaConceptos">
+                <strong>Horas frío:</strong> Son horas con temperatura baja (0°C a 7°C) necesarias para que el árbol cumpla su ciclo y la fruta alcance calidad óptima. <br/>
+                <strong>Ventana de cosecha:</strong> Periodo recomendado para cortar la fruta: demasiado pronto falta desarrollo; demasiado tarde puede perder firmeza. <br/>
+                <strong>Ajuste por frío:</strong> Si el frío acumulado es menor al esperado se retrasa un poco la fecha estimada. <br/>
+                <em>Consejo:</em> Usa "Actualizar clima" si pasaron varias horas o días desde la última consulta.
+            </div>
+        </section>
     </div>
-</div>
-<?php if($resultado): ?>
-<?php $rAgri = $resultado['resumen_agricultor'] ?? null; ?>
-<?php $chill_real_display = $chill_real ?? null; ?>
-<div class="panel" id="panelEsencial">
-    <h2>Vista Esencial para el Agricultor</h2>
-    <?php if($rAgri): ?>
-        <div class="metrics-grid" id="metricsGrid">
+    <?php if($resultado): ?>
+    <?php $rAgri = $resultado['resumen_agricultor'] ?? null; ?>
+    <?php $chill_real_display = $chill_real ?? null; ?>
+    <div class="page-card" id="panelEsencial">
+        <div class="page-header">
+            <h2>Vista Esencial para el Agricultor</h2>
+        </div>
+        <section class="card">
+            <?php if($rAgri): ?>
+                <div class="metrics-grid" id="metricsGrid">
             <div class="metric-card" id="mcVariedad">
                 <h3>VARIEDAD</h3>
                 <div class="value"><?= htmlspecialchars($rAgri['variedad']) ?></div>
@@ -303,33 +380,38 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
             <?php $estado = $rAgri['estado_frio']; $estadoClase='cold-ok'; if($estado==='bajo'){ $estadoClase='cold-low'; } elseif($estado==='medio'){ $estadoClase='cold-mid'; } elseif($estado==='estable'){ $estadoClase='cold-ok'; } else { $estadoClase=''; } ?>
             
         </div>
-        <div style="margin-top:14px;font-size:13px;color:#37474f;">
+        <div style="margin-top:14px;font-size:13px;color:var(--text-secondary);">
             <strong>Recomendación principal:</strong> <?= htmlspecialchars($rAgri['recomendacion']) ?><br/>
             <?php if(!empty($rAgri['alerta_clave'])): ?>
                 <strong>Alerta destacada:</strong> <?= htmlspecialchars($rAgri['alerta_clave']) ?>
             <?php endif; ?>
         </div>
-    <button type="button" id="toggleDetallado" class="btn btn-primary" style="margin-top:16px;">Ver detalles avanzados</button>
-        <p style="font-size:12px;color:#54666b;margin-top:6px;">Esta vista muestra sólo lo que necesitas para decidir logística y monitoreo diario.</p>
-    <?php else: ?>
-        <p>No se construyó el resumen esencial.</p>
-    <?php endif; ?>
-</div>
-<div id="bloqueCompleto" style="display:none;">
-<div class="panel fade-seq">
-    <h2>Resumen</h2>
-    <div class="detalle-grid">
-        <div class="detalle-card"><strong>Variedad</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['nombre_variedad']) ?></div><div class="detalle-meta">Identificador</div></div>
-        <div class="detalle-card"><strong>Floración</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['fecha_floracion']) ?></div><div class="detalle-meta">Fecha base</div></div>
-        <div class="detalle-card"><strong>Días Flor-Cosecha</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['dias_flor_cosecha']) ?></div><div class="detalle-meta">Duración ciclo</div></div>
-        <div class="detalle-card"><strong>Cosecha estimada</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['fecha_cosecha_estimada']) ?></div><div class="detalle-meta">Objetivo temporal</div></div>
-        <div class="detalle-card"><strong>Ventana Inicio</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['ventana_inicio']) ?></div><div class="detalle-meta">Inicio recomend.</div></div>
-        <div class="detalle-card"><strong>Ventana Fin</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['ventana_fin']) ?></div><div class="detalle-meta">Fin recomend.</div></div>
-        <div class="detalle-card"><strong>Vida anaquel</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['vida_anaquel_dias']) ?> días</div><div class="detalle-meta">Conservación</div></div>
-        <div class="detalle-card"><strong>Límite anaquel</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['fecha_limite_anaquel']) ?></div><div class="detalle-meta">Fecha límite</div></div>
-        <div class="detalle-card"><strong>Ajuste frío</strong><div class="detalle-valor"><?= htmlspecialchars((string)$resultado['ajuste_aplicado_dias']) ?> días</div><div class="detalle-meta">Días añadidos</div></div>
-        <div class="detalle-card"><strong>Horas frío</strong><div class="detalle-valor"><?= htmlspecialchars((string)$resultado['horas_frio_acumuladas']) ?> / <?= htmlspecialchars((string)$resultado['horas_frio_requeridas']) ?></div><div class="detalle-meta">Acum / Req</div></div>
-        <div class="detalle-card"><strong>Avance frío</strong><div class="detalle-valor"><?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%</div><div class="detalle-meta">Progreso</div></div>
+        <button type="button" id="toggleDetallado" style="margin-top:16px;background:#1976d2;">Ver detalles avanzados</button>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">Esta vista muestra sólo lo que necesitas para decidir logística y monitoreo diario.</p>
+            <?php else: ?>
+                <p>No se construyó el resumen esencial.</p>
+            <?php endif; ?>
+        </section>
+    </div>
+    <div id="bloqueCompleto" style="display:none;">
+    <div class="page-card">
+        <div class="page-header">
+            <h2>Resumen</h2>
+        </div>
+        <section class="card">
+            <div class="grid">
+        <div class="dato"><strong><?= htmlspecialchars($resultado['nombre_variedad']) ?></strong><span>Variedad</span></div>
+        <div class="dato"><strong><?= htmlspecialchars($resultado['fecha_floracion']) ?></strong><span>Fecha Floración</span></div>
+        <div class="dato"><strong><?= htmlspecialchars($resultado['dias_flor_cosecha']) ?></strong><span>Días Flor-Cosecha</span></div>
+        <div class="dato"><strong><?= htmlspecialchars($resultado['fecha_cosecha_estimada']) ?></strong><span>Fecha Estimada</span></div>
+        <div class="dato"><strong><?= htmlspecialchars($resultado['ventana_inicio']) ?></strong><span>Ventana Inicio</span></div>
+        <div class="dato"><strong><?= htmlspecialchars($resultado['ventana_fin']) ?></strong><span>Ventana Fin</span></div>
+        <div class="dato"><strong><?= htmlspecialchars($resultado['vida_anaquel_dias']) ?></strong><span>Vida Anaquel (días)</span></div>
+        <div class="dato"><strong><?= htmlspecialchars($resultado['fecha_limite_anaquel']) ?></strong><span>Límite Anaquel</span></div>
+        <div class="dato"><strong><?= htmlspecialchars((string)$resultado['ajuste_aplicado_dias']) ?></strong><span>Ajuste por frío</span></div>
+        <div class="dato"><strong><?= htmlspecialchars((string)$resultado['horas_frio_acumuladas']) ?></strong><span>Horas Frío Acum.</span></div>
+        <div class="dato"><strong><?= htmlspecialchars((string)$resultado['horas_frio_requeridas']) ?></strong><span>Horas Frío Req.</span></div>
+    <div class="dato"><strong><?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%</strong><span>Avance frío</span></div>
     </div>
     <?php
         // Interpretación amigable
@@ -337,32 +419,36 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
         $ajuste = (int)$resultado['ajuste_aplicado_dias'];
         if ($porc < 80) { $estadoFrio = 'b-riesgo-alto'; $textoFrio = 'El frío acumulado es bajo (' . $porc . '%). Se aplicó un ajuste de +' . $ajuste . ' días para evitar cosecha prematura.'; }
         elseif ($porc < 90) { $estadoFrio = 'b-riesgo-medio'; $textoFrio = 'El frío va cerca del objetivo (' . $porc . '%). Ajuste ligero de +' . $ajuste . ' días.'; }
-    else { $estadoFrio = 'b-riesgo-bajo'; $textoFrio = 'Objetivo de frío prácticamente cumplido (' . $porc . '%). Fecha estimada estable.'; }
+        else { $estadoFrio = 'b-riesgo-bajo'; $textoFrio = 'Objetivo de frío prácticamente cumplido (' . $porc . '%). Fecha estimada estable.'; }
     ?>
     <div class="info"><span class="badge <?= $estadoFrio ?>">Frío <?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%</span> <?= htmlspecialchars($textoFrio) ?></div>
-    <p style="margin-top:10px;font-size:.7rem;color:var(--text-secondary);">Las horas frío (0°C–7°C) se estimaron sobre últimos datos disponibles. Déficit térmico retrasa fecha para proteger calidad.</p>
+    <p style="margin-top:10px;font-size:13px;color:var(--text-secondary);">Las horas frío se contabilizan (0°C–7°C). Si no había datos previos se estimó un bloque reciente (≈30 días). Un menor porcentaje retrasa la fecha objetivo para no comprometer calidad.</p>
     <h3>Alertas</h3>
     <?php if(count($resultado['alertas'])===0): ?>
         <div class="ok">Sin alertas relevantes.</div>
     <?php else: foreach($resultado['alertas'] as $a): ?>
         <div class="alerta"><?= htmlspecialchars($a) ?></div>
     <?php endforeach; endif; ?>
-</div>
-<div class="panel">
-    <h2>Desglose Detallado</h2>
-    <p style="font-size:.7rem;color:var(--text-secondary);">Cada métrica incluye explicación corta y extensa para comprensión sin experiencia técnica.</p>
-        <p style="font-size:.65rem;color:var(--text-secondary);background:var(--bg-card-hover);border:1px solid var(--border);padding:10px 12px;border-radius:10px;line-height:1.35;">
-            <strong>Metodología Prob. Éxito (versión heurística 0.2):</strong> Partimos del % de horas frío cumplidas comparado con lo requerido, aplicamos penalización por días de ajuste (déficit térmico) y añadimos bonificación incremental si el cumplimiento es alto (≥95% sin ajuste). Ahora se incorpora un factor adicional de <em>chill portions</em> estimadas (heurística): rangos mayores de porciones aportan bonificación (ej. ≥40 → +4 pts). Futuras versiones integrarán: riesgo de heladas severas, anomalías de radiación, estrés hídrico y validación fenológica visual. <strong>Nota:</strong> Esta probabilidad no garantiza rendimiento, sino la consistencia temporal y de calidad prevista bajo supuestos estándar de manejo.
-        </p>
+        </section>
+    </div>
+    <div class="page-card">
+        <div class="page-header">
+            <h2>Desglose Detallado</h2>
+        </div>
+        <section class="card">
+            <p style="font-size:13px;color:var(--text-secondary);">Cada métrica incluye una explicación corta y otra amplia para reforzar comprensión incluso sin experiencia técnica o agrícola.</p>
+            <p style="font-size:12px;color:var(--text-secondary);background:var(--bg-secondary);border:1px solid var(--border);padding:10px 12px;border-radius:10px;line-height:1.35;">
+                <strong>Metodología Prob. Éxito (versión heurística 0.2):</strong> Partimos del % de horas frío cumplidas comparado con lo requerido, aplicamos penalización por días de ajuste (déficit térmico) y añadimos bonificación incremental si el cumplimiento es alto (≥95% sin ajuste). Ahora se incorpora un factor adicional de <em>chill portions</em> estimadas (heurística): rangos mayores de porciones aportan bonificación (ej. ≥40 → +4 pts). Futuras versiones integrarán: riesgo de heladas severas, anomalías de radiación, estrés hídrico y validación fenológica visual. <strong>Nota:</strong> Esta probabilidad no garantiza rendimiento, sino la consistencia temporal y de calidad prevista bajo supuestos estándar de manejo.
+            </p>
     <?php if(isset($resultado['detalles']) && is_array($resultado['detalles'])): ?>
         <?php foreach($resultado['detalles'] as $clave => $info): ?>
-            <div class="detalle-card" style="margin-bottom:14px;">
-                <h3 style="margin:0 0 6px;font-size:.75rem;letter-spacing:.4px;background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🔍 <?= htmlspecialchars($info['titulo']) ?></h3>
+            <div style="margin-bottom:18px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-secondary);">
+                <h3 style="margin:0 0 8px;font-size:15px;letter-spacing:.4px;color:var(--text-primary);">🔍 <?= htmlspecialchars($info['titulo']) ?></h3>
                 <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;">
-                    <div style="min-width:160px;font-size:.65rem;line-height:1.3;">
-                        <strong>Valor:</strong> <span style="color:var(--green-2);"><?= htmlspecialchars(is_scalar($info['valor']) ? (string)$info['valor'] : (is_array($info['valor'])? json_encode($info['valor']) : '')) ?></span>
+                    <div style="min-width:180px;font-size:13px;line-height:1.3;color:var(--text-primary);">
+                        <strong>Valor:</strong> <span style="color:var(--accent);"><?= htmlspecialchars(is_scalar($info['valor']) ? (string)$info['valor'] : (is_array($info['valor'])? json_encode($info['valor']) : '')) ?></span>
                     </div>
-                    <div style="flex:1;min-width:220px;font-size:.62rem;color:var(--text-secondary);">
+                    <div style="flex:1;min-width:240px;font-size:12.5px;color:var(--text-secondary);">
                         <strong>Explicación corta:</strong><br/>
                         <?= htmlspecialchars($info['explicacion_corta']) ?><br/>
                         <strong style="display:block;margin-top:6px;">Explicación extensa:</strong>
@@ -376,54 +462,24 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
         <p>No hay detalles disponibles.</p>
     <?php endif; ?>
     <?php if(isset($resultado['debug_calc'])): $dbg = $resultado['debug_calc']; ?>
-        <div style="margin-top:12px;padding:12px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-card-hover);">
-            <h4 style="margin:0 0 6px;font-size:.7rem;color:var(--accent);">Depuración cálculo probabilidad</h4>
-            <pre style="font-size:.6rem;color:var(--text-secondary);white-space:pre-wrap;"><?= htmlspecialchars(json_encode($dbg, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)) ?></pre>
+        <div style="margin-top:12px;padding:12px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-secondary);">
+            <h4 style="color:var(--text-primary);">Depuración cálculo probabilidad</h4>
+            <pre style="font-size:13px;color:var(--text-secondary);white-space:pre-wrap;"><?= htmlspecialchars(json_encode($dbg, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)) ?></pre>
         </div>
     <?php endif; ?>
-    <p style="font-size:.6rem;color:var(--text-muted);margin-top:10px;">Fin del desglose. Cambia variedad o fecha para recomputar métricas.</p>
-</div>
-<div class="panel">
-    <h2>Visualizaciones simplificadas</h2>
-    <div class="chart-wrapper">
-        <!-- Nuevo panel: Desglose de Parámetros Clave -->
-        <div class="panel" style="flex:1 1 100%;background:var(--bg-card-hover);border:1px solid var(--border);margin-bottom:28px;">
-            <h2 style="margin-top:0;font-size:1rem;">Desglose de Parámetros Clave</h2>
-            <p style="font-size:.65rem;color:var(--text-secondary);margin-top:4px;">Visual comparativa de frío, ajuste aplicado y vida de anaquel para interpretación rápida.</p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:16px;">
-                <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;">
-                    <h3 style="margin:0 0 8px;font-size:.7rem;letter-spacing:.5px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Horas Frío</h3>
-                    <div style="font-size:.6rem;color:var(--text-muted);margin-bottom:6px;">Acumuladas vs requeridas</div>
-                    <div class="visual-progress" style="height:26px;">
-                        <div class="bar" id="barFrioAvz"></div>
-                        <div class="label" id="labelFrioAvz">0%</div>
-                    </div>
-                    <small style="display:block;margin-top:6px;font-size:.55rem;color:var(--text-secondary);">Valor: <strong><?= htmlspecialchars((string)$resultado['horas_frio_acumuladas']) ?></strong> / <?= htmlspecialchars((string)$resultado['horas_frio_requeridas']) ?> (<?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%)</small>
-                </div>
-                <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;">
-                    <h3 style="margin:0 0 8px;font-size:.7rem;letter-spacing:.5px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Ajuste por Frío</h3>
-                    <div style="font-size:.6rem;color:var(--text-muted);margin-bottom:6px;">Días añadidos al ciclo</div>
-                    <div class="visual-progress" style="height:26px;">
-                        <div class="bar" id="barAjusteAvz" style="background:linear-gradient(90deg,#ffa726,#ffcc80);"></div>
-                        <div class="label" id="labelAjusteAvz">0 días</div>
-                    </div>
-                    <small style="display:block;margin-top:6px;font-size:.55rem;color:var(--text-secondary);">Ajuste aplicado: <strong><?= htmlspecialchars((string)$resultado['ajuste_aplicado_dias']) ?></strong> días</small>
-                </div>
-                <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;">
-                    <h3 style="margin:0 0 8px;font-size:.7rem;letter-spacing:.5px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Vida de Anaquel</h3>
-                    <div style="font-size:.6rem;color:var(--text-muted);margin-bottom:6px;">Duración estimada post-cosecha</div>
-                    <div class="visual-progress" style="height:26px;">
-                        <div class="bar" id="barAnaquelAvz" style="background:linear-gradient(90deg,#ff9800,#ffb74d);"></div>
-                        <div class="label" id="labelAnaquelAvz">0 días</div>
-                    </div>
-                    <small style="display:block;margin-top:6px;font-size:.55rem;color:var(--text-secondary);">Vida estimada: <strong><?= htmlspecialchars((string)$resultado['vida_anaquel_dias']) ?></strong> días • Límite: <?= htmlspecialchars($resultado['fecha_limite_anaquel']) ?></small>
-                </div>
-            </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">Fin del desglose. Puedes volver arriba para cambiar variedad o fecha y recalcular el conjunto completo de métricas y sus explicaciones repetitivas.</p>
+        </section>
+    </div>
+    <div class="page-card">
+        <div class="page-header">
+            <h2>Visualizaciones simplificadas</h2>
         </div>
-        <div class="chart-box" aria-label="Progreso de horas frío" role="group">
-            <h4>Avance de Horas Frío</h4>
-            <div class="progress-wrap" title="Porcentaje de horas frío acumuladas sobre lo requerido">
-                <div class="progress-bar" id="barFrio"></div>
+        <section class="card">
+            <div class="chart-wrapper">
+                <div class="chart-box" aria-label="Progreso de horas frío" role="group">
+                    <h4>Avance de Horas Frío</h4>
+                    <div class="progress-wrap" title="Porcentaje de horas frío acumuladas sobre lo requerido">
+                        <div class="progress-bar" id="barFrio"></div>
                 <div class="progress-label" id="labelFrio">0%</div>
             </div>
             <div class="explicacion">Necesarias: <strong><?= htmlspecialchars((string)$resultado['horas_frio_requeridas']) ?></strong> | Acumuladas: <strong><?= htmlspecialchars((string)$resultado['horas_frio_acumuladas']) ?></strong>. El avance ideal es ≥90% para una fecha de cosecha estable.</div>
@@ -457,30 +513,39 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
                         <div class="progress-label" id="labelAnaquel">0 días</div>
                     </div>
                 </div>
-                <div style="min-width:80px;text-align:center;font-size:28px;font-weight:700;color:#ff9800;" id="valorAnaquel">0</div>
+                <div style="min-width:80px;text-align:center;font-size:28px;font-weight:700;color:var(--accent);" id="valorAnaquel">0</div>
             </div>
             <div class="explicacion">Valor aproximado de conservación en condiciones estándar. Almacenes más fríos y manejo delicado pueden extender algunos días.</div>
         </div>
     </div>
-</div>
-<div class="panel" id="panelHelada" style="display:none;">
-    <h2>Riesgo de Helada (SAGRO-IA)</h2>
-    <div id="heladaResumen"></div>
-    <div id="heladaEventos"></div>
-</div>
-</div><!-- cierre bloqueCompleto -->
-<div class="panel">
-    <h2>Predicción climática (próximos días)</h2>
-    <div id="prediccionBox">
-        <p style="font-size:13px;color:#37474f;">Se muestran Tmin/Tmax diarias y una estimación simple de horas frío esperadas (0–7°C) basada en la predicción almacenada.</p>
-        <table style="width:100%;border-collapse:collapse;margin-top:10px;">
-            <thead>
-                <tr style="text-align:left;border-bottom:1px solid #e0e0e0;"><th>Día</th><th>Tmin</th><th>Tmax</th><th>Horas frío prev.</th><th>Horas ≤1°C (48h)</th></tr>
-            </thead>
-            <tbody id="predRows"></tbody>
-        </table>
+        </section>
     </div>
-</div>
+    <div class="page-card" id="panelHelada" style="display:none;">
+        <div class="page-header">
+            <h2>Riesgo de Helada (SAGRO-IA)</h2>
+        </div>
+        <section class="card">
+            <div id="heladaResumen"></div>
+            <div id="heladaEventos"></div>
+        </section>
+    </div>
+    </div><!-- cierre bloqueCompleto -->
+    <div class="page-card">
+        <div class="page-header">
+            <h2>Predicción climática (próximos días)</h2>
+        </div>
+        <section class="card">
+            <div id="prediccionBox">
+                <p style="font-size:13px;color:var(--text-secondary);">Se muestran Tmin/Tmax diarias y una estimación simple de horas frío esperadas (0–7°C) basada en la predicción almacenada.</p>
+                <table style="width:100%;border-collapse:collapse;margin-top:10px;">
+                    <thead>
+                        <tr style="text-align:left;border-bottom:1px solid #e0e0e0;"><th>Día</th><th>Tmin</th><th>Tmax</th><th>Horas frío prev.</th><th>Horas ≤1°C (48h)</th></tr>
+                    </thead>
+                    <tbody id="predRows"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
 <script>
 (function(){
     // Datos PHP -> JS
@@ -506,6 +571,37 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
     // Animar tarjetas métricas
     const metricCards = document.querySelectorAll('.metric-card');
     let delay=0; metricCards.forEach(mc=>{ setTimeout(()=> mc.classList.add('active'), delay); delay+=140; });
+    
+    // Control del select de cultivo
+    const cultivoSelect = document.getElementById('cultivo');
+    if(cultivoSelect){
+        cultivoSelect.addEventListener('change', function(e){
+            if(e.target.value !== 'manzana'){
+                // Mostrar mensaje temporal
+                const alertaTemp = document.createElement('div');
+                alertaTemp.className = 'alerta';
+                alertaTemp.textContent = 'Próximamente disponible. Por ahora solo manzana está habilitada.';
+                alertaTemp.style.opacity = '0';
+                alertaTemp.style.transition = 'opacity 0.3s ease';
+                
+                // Insertar después del formulario
+                const form = e.target.closest('form');
+                form.parentNode.insertBefore(alertaTemp, form.nextSibling);
+                
+                // Animar entrada
+                setTimeout(() => alertaTemp.style.opacity = '1', 10);
+                
+                // Revertir selección a manzana
+                e.target.value = 'manzana';
+                
+                // Remover mensaje después de 3 segundos
+                setTimeout(() => {
+                    alertaTemp.style.opacity = '0';
+                    setTimeout(() => alertaTemp.remove(), 300);
+                }, 3000);
+            }
+        });
+    }
     // Toggle avanzado y animar timeline
     const btnToggle = document.getElementById('toggleDetallado');
     const bloque = document.getElementById('bloqueCompleto');
@@ -516,41 +612,6 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
             btnToggle.textContent = visible? 'Ver detalles avanzados':'Ocultar detalles avanzados';
             if(!visible){
                 document.querySelectorAll('.t-step').forEach((st,i)=>{setTimeout(()=>st.classList.add('active'), i*160);});
-                // Animar barras avanzadas
-                const barFrioAvz = document.getElementById('barFrioAvz');
-                const labelFrioAvz = document.getElementById('labelFrioAvz');
-                if(barFrioAvz && labelFrioAvz){
-                    const porcVal = Math.min(100, Math.max(0, porcentajeFrio));
-                    setTimeout(()=>{
-                        barFrioAvz.style.width = porcVal + '%';
-                        labelFrioAvz.textContent = porcVal.toFixed(1) + '%';
-                        if (porcVal < 80) { barFrioAvz.style.background = 'linear-gradient(90deg,#c62828,#ef5350)'; }
-                        else if (porcVal < 90) { barFrioAvz.style.background = 'linear-gradient(90deg,#f9a825,#fff176)'; }
-                    }, 200);
-                }
-                const barAjusteAvz = document.getElementById('barAjusteAvz');
-                const labelAjusteAvz = document.getElementById('labelAjusteAvz');
-                if(barAjusteAvz && labelAjusteAvz){
-                    const ajusteDias = <?= json_encode($resultado['ajuste_aplicado_dias'] ?? 0) ?>;
-                    // Escala ajuste: suponemos 0-10 días como rango máximo típico
-                    const ajustePct = Math.min(100, (ajusteDias/10)*100);
-                    setTimeout(()=>{
-                        barAjusteAvz.style.width = ajustePct + '%';
-                        labelAjusteAvz.textContent = ajusteDias + ' días';
-                        if(ajusteDias === 0){ barAjusteAvz.style.background='linear-gradient(90deg,var(--green-4),var(--accent))'; }
-                    }, 260);
-                }
-                const barAnaquelAvz = document.getElementById('barAnaquelAvz');
-                const labelAnaquelAvz = document.getElementById('labelAnaquelAvz');
-                if(barAnaquelAvz && labelAnaquelAvz){
-                    const vidaDias = vidaAnaquel || 0;
-                    const maxRefAvz = 60; // misma referencia que panel simple
-                    const anaquelPct = Math.min(100,(vidaDias/maxRefAvz)*100);
-                    setTimeout(()=>{
-                        barAnaquelAvz.style.width = anaquelPct + '%';
-                        labelAnaquelAvz.textContent = vidaDias + ' días';
-                    }, 300);
-                }
             }
         });
     }
@@ -620,10 +681,6 @@ select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 
 </script>
 <?php endif; ?>
 </main>
-<footer class="site-footer">
-    <div class="container">
-        <small>© <?= date('Y') ?> Hackatek - Proyecto de ejemplo</small>
-    </div>
-</footer>
+<script src="../recursos/js/animations.js" defer></script>
 </body>
 </html>
