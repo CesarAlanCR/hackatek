@@ -27,8 +27,6 @@
 			<p class="lead">Monitorea, planifica y actúa para mejorar el rendimiento de tus cultivos. Interfaz inicial con módulos para comenzar.</p>
 		</section>
 
-	
-
 		<!-- Preview: Imágenes y Clima -->
 		<section class="preview-clima">
 			<div class="preview-grid">
@@ -44,7 +42,7 @@
 						<li>Humedad: <span id="humidity-value">--</span></li>
 						<li>Última imagen: <span id="satellite-updated">--</span></li>
 					</ul>
-					<button id="btn-ver-detalle-clima" class="btn btn-primary">Ver detalle</button>
+					<button class="btn btn-primary">Ver detalle</button>
 				</div>
 			</div>
 		</section>
@@ -65,7 +63,7 @@
 			<article id="modulo-chat-ia" class="card module-card" data-module="Chat IA" tabindex="0">
 				<h3>Chat IA</h3>
 				<p>Asistente para recomendaciones y diagnósticos.</p>
-				<a href="ia/chat.php" class="btn btn-primary">Abrir</a>
+				<button class="btn btn-primary">Abrir</button>
 			</article>
 
 			<article id="modulo-exportacion" class="card module-card" data-module="Exportación" tabindex="0">
@@ -105,7 +103,7 @@
 	</footer>
 
 	<!-- Modal simple -->
-	<div id="module-modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modal-title">
+	<div id="module-modal" class="modal" role="dialog" aria-hidden="true" aria-labelledby="modal-title">
 		<div class="modal-content">
 			<button class="modal-close" aria-label="Cerrar">×</button>
 			<h3 id="modal-title"></h3>
@@ -124,22 +122,16 @@
 		// Nota: evita subir este archivo al repositorio (ver .gitignore).
 		$configPath = __DIR__ . '/../includes/owm_config.php';
 		$owmKey = '';
-        $weatherApiKey = '';
 		if (file_exists($configPath)) {
 			$config = include $configPath;
 			if (is_array($config) && isset($config['OWM_API_KEY'])) {
 				$owmKey = $config['OWM_API_KEY'];
 			}
-            if (is_array($config) && isset($config['WEATHERAPI_KEY'])) {
-                $weatherApiKey = $config['WEATHERAPI_KEY'];
-            }
 		}
 	?>
 	<script>
 		// Expone la API key de OpenWeatherMap al frontend (configurar variable de entorno OWM_API_KEY en el servidor)
 		window.OWM_API_KEY = <?php echo json_encode($owmKey); ?>;
-        // Expone la API key de WeatherAPI si está disponible
-        window.WEATHERAPI_KEY = <?php echo json_encode($weatherApiKey); ?>;
 	</script>
 	<script src="../recursos/js/class.js" defer></script>
 </body>
