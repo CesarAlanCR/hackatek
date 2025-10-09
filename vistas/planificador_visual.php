@@ -1,201 +1,154 @@
 <?php
-// vistas/planificador_visual.php
-require_once __DIR__ . '/../includes/planificador_manager.php';
-require_once __DIR__ . '/../includes/catalogo_manzanos.php';
-require_once __DIR__ . '/../includes/clima_persistencia.php';
+// Incluir archivo de conexión
+require_once '../includes/conexion.php';
 
-// Coordenadas por defecto (puedes cambiar a las del huerto/usuario)
-$default_lat = 28.4069;
-$default_lon = -106.8666;
+// Recibir parámetros de ubicación del index.php
+$clima = $_GET['clima'] ?? '26';
+$lat = $_GET['lat'] ?? '';
+$lon = $_GET['lon'] ?? '';
+$tmax = $_GET['tmax'] ?? '26';
+$suelo = $_GET['suelo'] ?? '';
+$estado = $_GET['estado'] ?? 'Sonora';
+$temporada = $_GET['temporada'] ?? 'Otoño';
 
-catalogo_inicializar();
-clima_inicializar_tablas();
-
-$mensaje = '';
-$resultado = null;
-$variedades = planificador_listar_variedades();
- $horas_frio_actual = null;
-// Obtener la última horas_frio para contexto; si no existe intentar calcular período reciente (últimos 30 días)
-$db = conectar_bd();
-$q = $db->query('SELECT horas_frio, fecha_corte FROM horas_frio_acumuladas ORDER BY fecha_corte DESC LIMIT 1');
-if ($q && $row = $q->fetch_assoc()) { $horas_frio_actual = (int)$row['horas_frio']; }
-$db->close();
-if ($horas_frio_actual === null) {
-    // Fallback rápido: ingerir últimas 720 horas (~30 días) usando la ingesta extendida y coordenadas por defecto
-    $lat = $default_lat; $lon = $default_lon;
-    $hoy = date('Y-m-d');
-    $inicio = date('Y-m-d', strtotime('-30 days'));
-    // Ingesta extendida (incluye forecast) y cálculo
-    $insertados = clima_ingestar_open_meteo_extendido($lat, $lon, 30, 16, 'America/Mexico_City');
-    $calculadas = clima_calcular_acumulado($lat, $lon, $inicio.' 00:00:00', $hoy.' 23:59:59');
-    // Guardar acumulado provisional con fecha corte hoy y temporada año actual
-    $temporada = date('Y');
-    clima_guardar_acumulado($lat, $lon, $temporada, $calculadas, $hoy);
-    $horas_frio_actual = $calculadas;
+// Extraer temperatura numérica del texto de clima
+$temperatura = 26;
+if (preg_match('/(\d+)/', $clima, $matches)) {
+    $temperatura = intval($matches[1]);
+} elseif (preg_match('/(\d+)/', $tmax, $matches)) {
+    $temperatura = intval($matches[1]);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $cultivo = $_POST['cultivo'] ?? 'manzana';
-    $variedad_id = isset($_POST['variedad_id']) ? (int)$_POST['variedad_id'] : 0;
-    $fecha_floracion = trim($_POST['fecha_floracion'] ?? '');
-    if ($cultivo !== 'manzana') {
-        $mensaje = 'Solo se encuentra habilitado el cultivo manzana.';
-    } elseif ($variedad_id > 0 && $fecha_floracion) {
-        $v = planificador_obtener_variedad($variedad_id);
-        if ($v) {
-            if (($_POST['accion'] ?? '') === 'actualizar_clima') {
-                // Recalcular horas frío usando ingesta extendida y coordenadas por defecto
-                $lat = $default_lat; $lon = $default_lon;
-                $inicio = date('Y-m-d', strtotime('-30 days'));
-                $fin = date('Y-m-d');
-                clima_ingestar_open_meteo_extendido($lat, $lon, 30, 16, 'America/Mexico_City');
-                $horas_frio_actual = clima_calcular_acumulado($lat, $lon, $inicio.' 00:00:00', $fin.' 23:59:59');
-                clima_guardar_acumulado($lat, $lon, date('Y'), $horas_frio_actual, $fin);
-                $mensaje = 'Clima actualizado (extendido) y horas frío recalculadas.';
-            }
-            $resultado = planificador_calcular($v, $fecha_floracion, $horas_frio_actual);
-            // Calcular chill portions sobre datos reales usando coordenadas actuales
-            try {
-                $fechaFlorDt = new DateTime($fecha_floracion);
-                $anioFlor = (int)$fechaFlorDt->format('Y');
-                $temporadaDesde = ($anioFlor - 1) . '-07-01';
-                $chill_real = clima_calcular_chill_portions_heuristica($default_lat, $default_lon, $temporadaDesde, $fechaFlorDt->format('Y-m-d'));
-            } catch (Throwable $e) {
-                $chill_real = null;
-            }
-        } else {
-            $mensaje = 'Variedad no encontrada.';
-        }
+// Función para calcular score de compatibilidad
+function calcularScore($cultivo, $temperatura, $estado, $temporada) {
+    $score = 0;
+    $reasons = [];
+    
+    // Score por temperatura (máximo 4 puntos)
+    if ($temperatura >= $cultivo['t_min'] && $temperatura <= $cultivo['t_max']) {
+        $score += 4;
+        $reasons[] = 'Temperatura dentro del rango ideal';
     } else {
-        $mensaje = 'Completa todos los campos.';
+        $diff = min(abs($temperatura - $cultivo['t_min']), abs($temperatura - $cultivo['t_max']));
+        if ($diff <= 5) {
+            $score += 2;
+            $reasons[] = 'Temperatura cercana al rango óptimo';
+        }
     }
-}
-
-// --- Recomendación Inteligente (SAGRO-IA) basada en contexto del índice y BD optilife ---
-// Lee contexto desde querystring (proveniente de index) y calcula recomendaciones
-// Asunciones: BD optilife accessible en localhost (XAMPP) con usuario root sin contraseña
-
-// Helpers para normalizar strings y coincidencias parciales
-function norm($s){
-    $s = mb_strtolower((string)$s, 'UTF-8');
-    $s = preg_replace('/[áÁ]/u','a',$s);
-    $s = preg_replace('/[éÉ]/u','e',$s);
-    $s = preg_replace('/[íÍ]/u','i',$s);
-    $s = preg_replace('/[óÓ]/u','o',$s);
-    $s = preg_replace('/[úÚ]/u','u',$s);
-    $s = preg_replace('/[ñÑ]/u','n',$s);
-    return trim($s);
-}
-function contains_norm($hay,$needle){
-    $hay = norm($hay); $needle = norm($needle);
-    if($needle==='') return false; return (strpos($hay,$needle) !== false);
-}
-function temporada_actual(){
-    $m = (int)date('n');
-    if($m===12 || $m<=2) return 'Invierno';
-    if($m>=3 && $m<=5) return 'Primavera';
-    if($m>=6 && $m<=8) return 'Verano';
-    return 'Otoño';
-}
-
-// Obtener contexto
-$ctx = [
-    'clima' => $_GET['clima'] ?? null,
-    'lat' => isset($_GET['lat']) ? (float)$_GET['lat'] : null,
-    'lon' => isset($_GET['lon']) ? (float)$_GET['lon'] : null,
-    'temp_max' => isset($_GET['tmax']) ? (float)$_GET['tmax'] : null,
-    'suelo' => $_GET['suelo'] ?? null,
-    'estado' => $_GET['estado'] ?? null,
-    'temporada' => $_GET['temporada'] ?? null,
-];
-if(!$ctx['temporada']) $ctx['temporada'] = temporada_actual();
-
-// Conexión BD optilife y obtención de productos
-$recos = [];
-$dbOk = false; $dbErr = null;
-try{
-    $cn = @new mysqli('127.0.0.1','root','', 'optilife');
-    if($cn && !$cn->connect_error){
-        $dbOk = true;
-        $sql = "SELECT id,nombre,clima,t_min,t_max,epoca_siembra,dias_germinacion,dias_caducidad,recomendaciones,suelo,estados FROM productos";
-        if($rs = $cn->query($sql)){
-            while($row = $rs->fetch_assoc()){
-                    // Nuevo scoring ponderado: Estado (5), Época (3), Suelo (1), Temperatura (1). Máximo 10 puntos.
-                    $score = 0; $reasons = [];
-
-                    // Estado (comparación exacta por token)
-                    if($ctx['estado'] && !empty($row['estados'])){
-                        $estTokens = array_filter(array_map('trim', preg_split('/[,;|]/', $row['estados'])));
-                        $estMatch = false; $ctxEstadoNorm = norm($ctx['estado']);
-                        foreach($estTokens as $token){
-                            if(norm($token) === $ctxEstadoNorm){ $estMatch = true; break; }
-                        }
-                        if($estMatch){ $score += 5; $reasons[] = 'Coincidencia exacta de estado'; }
-                    }
-
-                    // Época de siembra (coincidencia exacta por token)
-                    if($ctx['temporada'] && !empty($row['epoca_siembra'])){
-                        $epiTokens = array_filter(array_map('trim', preg_split('/[,;|]/', $row['epoca_siembra'])));
-                        $tempMatch = false; $ctxTempNorm = norm($ctx['temporada']);
-                        foreach($epiTokens as $token){
-                            if(norm($token) === $ctxTempNorm){ $tempMatch = true; break; }
-                        }
-                        if($tempMatch){ $score += 3; $reasons[] = 'Coincidencia exacta de época de siembra'; }
-                    }
-
-                    // Suelo (coincidencia exacta por token)
-                    if($ctx['suelo'] && !empty($row['suelo'])){
-                        $soilTokens = array_filter(array_map('trim', preg_split('/[,;|]/', $row['suelo'])));
-                        $soilMatch = false; $ctxSoilNorm = norm($ctx['suelo']);
-                        foreach($soilTokens as $token){
-                            if(norm($token) === $ctxSoilNorm){ $soilMatch = true; break; }
-                        }
-                        if($soilMatch){ $score += 1; $reasons[] = 'Coincidencia exacta de tipo de suelo'; }
-                    }
-
-                    // Temperatura (rango ideal)
-                    $tmin = is_numeric($row['t_min']) ? (float)$row['t_min'] : null;
-                    $tmax = is_numeric($row['t_max']) ? (float)$row['t_max'] : null;
-                    if($ctx['temp_max']!==null && $tmin!==null && $tmax!==null && $ctx['temp_max'] >= $tmin && $ctx['temp_max'] <= $tmax){
-                        $score += 1; $reasons[] = 'Temperatura dentro del rango ideal'; }
-
-                    // Guardar (máximo 10 puntos)
-                    $score = min($score, 10);
-                    $recos[] = [
-                        'score' => $score,
-                        'producto' => $row,
-                        'reasons' => $reasons
-                    ];
-            }
-            // Deduplicar por nombre (quedarse con mayor score)
-            $dedup = [];
-            foreach($recos as $item){
-                $nameKey = norm($item['producto']['nombre']);
-                if(!isset($dedup[$nameKey]) || $item['score'] > $dedup[$nameKey]['score']){
-                    $dedup[$nameKey] = $item;
+    
+    // Score por estado (máximo 3 puntos)
+    $estadosCultivo = explode(',', $cultivo['estados']);
+    $estadosCultivo = array_map('trim', $estadosCultivo);
+    
+    if (in_array($estado, $estadosCultivo)) {
+        $score += 3;
+        $reasons[] = 'Coincidencia exacta de estado';
+    } else {
+        // Verificar estados vecinos o similares
+        $estadosVecinos = [
+            'Sonora' => ['Sinaloa', 'Chihuahua', 'Baja California'],
+            'Sinaloa' => ['Sonora', 'Nayarit', 'Durango'],
+            'Chihuahua' => ['Sonora', 'Coahuila', 'Durango'],
+            'Coahuila' => ['Chihuahua', 'Nuevo León', 'Durango'],
+            'Nuevo León' => ['Coahuila', 'Tamaulipas']
+        ];
+        
+        if (isset($estadosVecinos[$estado])) {
+            foreach ($estadosVecinos[$estado] as $vecino) {
+                if (in_array($vecino, $estadosCultivo)) {
+                    $score += 1;
+                    $reasons[] = 'Estado vecino con condiciones similares';
+                    break;
                 }
             }
-            // Filtrar recomendaciones con score > 0
-            $recos = array_values(array_filter($dedup, function($item){ return $item['score'] > 0; }));
-
-            $rs->free();
         }
-        $cn->close();
-    } else {
-        $dbErr = $cn ? $cn->connect_error : 'No se pudo conectar a MySQL';
     }
-}catch(Throwable $e){ $dbErr = $e->getMessage(); }
+    
+    // Score por temporada (máximo 3 puntos)
+    $epocas = explode('-', $cultivo['epoca_siembra']);
+    $epocasPrincipales = array_map('trim', $epocas);
+    
+    if (in_array($temporada, $epocasPrincipales)) {
+        $score += 3;
+        $reasons[] = 'Coincidencia exacta de época de siembra';
+    } else {
+        // Verificar compatibilidad parcial
+        $temporadasCompatibles = [
+            'Otoño' => ['Invierno'],
+            'Invierno' => ['Otoño', 'Primavera'],
+            'Primavera' => ['Invierno', 'Verano'],
+            'Verano' => ['Primavera']
+        ];
+        
+        if (isset($temporadasCompatibles[$temporada])) {
+            foreach ($temporadasCompatibles[$temporada] as $compatible) {
+                if (in_array($compatible, $epocasPrincipales)) {
+                    $score += 1;
+                    $reasons[] = 'Época de siembra compatible';
+                    break;
+                }
+            }
+        }
+    }
+    
+    return ['score' => $score, 'reasons' => $reasons];
+}
 
-// Ordenar por score desc y tomar top N
-usort($recos, function($a,$b){ return $b['score'] <=> $a['score']; });
-$recosTop = array_slice($recos, 0, 10);
+try {
+    // Conectar a la base de datos
+    $mysqli = conectar_bd();
+    
+    // Obtener cultivos de la base de datos
+    $query = "SELECT id, nombre, clima, t_min, t_max, epoca_siembra, suelo, estados, recomendaciones 
+              FROM productos 
+              ORDER BY nombre";
+    
+    $resultado = $mysqli->query($query);
+    
+    if (!$resultado) {
+        throw new Exception("Error en la consulta: " . $mysqli->error);
+    }
+    
+    // Generar recomendaciones basadas en ubicación
+    $recomendaciones = [];
+    
+    while ($cultivo = $resultado->fetch_assoc()) {
+        $scoreData = calcularScore($cultivo, $temperatura, $estado, $temporada);
+        
+        if ($scoreData['score'] > 0) {
+            $recomendaciones[] = [
+                'cultivo' => $cultivo,
+                'score' => $scoreData['score'],
+                'reasons' => $scoreData['reasons']
+            ];
+        }
+    }
+    
+    // Ordenar por score descendente
+    usort($recomendaciones, function($a, $b) {
+        return $b['score'] - $a['score'];
+    });
+    
+    // Limitar a 10 mejores
+    $recomendaciones = array_slice($recomendaciones, 0, 10);
+    
+    $mysqli->close();
+    $conexionExitosa = true;
+    $errorConexion = '';
+    
+} catch (Exception $e) {
+    $conexionExitosa = false;
+    $errorConexion = $e->getMessage();
+    $recomendaciones = [];
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>Planificador Visual de Cosecha</title>
-<link rel="stylesheet" href="../recursos/css/general.css" />
+<link rel="stylesheet" href="../recursos/css/general.css">
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
@@ -305,6 +258,30 @@ $recosTop = array_slice($recos, 0, 10);
     background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
     padding:14px 16px;transition:var(--transition);
     transform:translateY(14px) scale(.96);opacity:0;
+    cursor:pointer;
+    position:relative;
+}
+.metric-card:hover{
+    border-color:var(--accent);
+    transform:translateY(-2px) scale(1.02);
+    box-shadow:0 8px 25px rgba(124,179,66,0.15);
+    background:rgba(124,179,66,0.05);
+}
+.metric-card:active{
+    transform:translateY(0) scale(1);
+}
+.metric-card::after{
+    content:'👆 Click para detalles';
+    position:absolute;
+    top:8px;
+    right:12px;
+    font-size:0.65rem;
+    color:var(--text-muted);
+    opacity:0;
+    transition:opacity 0.2s ease;
+}
+.metric-card:hover::after{
+    opacity:1;
 }
 .metric-card.active{transform:translateY(0) scale(1);opacity:1;}
 .metric-card h3{margin:0 0 6px;font-size:.82rem;color:var(--accent);font-weight:700;text-transform:uppercase;}
@@ -368,6 +345,149 @@ th{background:var(--bg-primary);color:var(--accent);font-weight:600;}
 
 /* Small text elements */
 small{color:var(--text-muted);}
+
+/* Elementos clickeables */
+.clickeable {
+    cursor: pointer;
+    transition: var(--transition-fast);
+    position: relative;
+}
+
+.clickeable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--green-glow);
+}
+
+.clickeable::after {
+    content: "👁️ Click para detalles";
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    border: 1px solid var(--border);
+    z-index: 1000;
+}
+
+.clickeable:hover::after {
+    opacity: 1;
+}
+
+/* Modal de detalles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    animation: modalAppear 0.3s ease;
+}
+
+@keyframes modalAppear {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+    background: var(--bg-secondary);
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--accent);
+    font-size: 1.2rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: var(--transition-fast);
+}
+
+.modal-close:hover {
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.detail-item {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    border-left: 4px solid var(--accent);
+}
+
+.detail-item h4 {
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.detail-item p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.detail-item ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.detail-item li {
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+
+.detail-item strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
 .explicacion{font-size:12.5px;color:var(--text-secondary);margin-top:10px;}
 
 /* Special boxes */
@@ -421,6 +541,10 @@ small{color:var(--text-muted);}
 </head>
 <body>
 <main class="container" style="padding:40px 0">
+
+</head>
+<body><canvas width="978" height="738" style="position: fixed; top: 0px; left: 0px; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0.15;"></canvas>
+<main class="container" style="padding:40px 0">
     <!-- Recomendación Inteligente basada en contexto -->
     <div class="page-card" style="margin-top:18px;">
         <div class="map-header" style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:rgba(30,41,54,0.6);border-bottom:1px solid var(--border);">
@@ -428,374 +552,195 @@ small{color:var(--text-muted);}
             <h5 style="margin:0;color:var(--accent);font-size:1.4rem;font-weight:700;flex:1;text-align:center;letter-spacing:-0.5px;">Recomendación Inteligente (SAGRO-IA)</h5>
             <div style="width:100px"></div>
         </div>
-        <section class="card">
-            <?php if(!$dbOk): ?>
-                <div class="alerta">No fue posible consultar la BD optilife para recomendaciones. <?= htmlspecialchars((string)$dbErr) ?></div>
+        <section class="card in-view">
+            <?php if (!$conexionExitosa): ?>
+                <div class="alerta" style="background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.3);color:#dc2626;padding:12px;border-radius:8px;margin-bottom:16px;">
+                    <strong>Error de conexión:</strong> <?= htmlspecialchars($errorConexion) ?>
+                </div>
             <?php else: ?>
                 <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">
-                    Contexto: Clima <?= htmlspecialchars((string)($ctx['clima'] ?? '—')) ?> | Temp. Máxima <?= htmlspecialchars((string)($ctx['temp_max'] ?? '—')) ?>°C | Suelo <?= htmlspecialchars((string)($ctx['suelo'] ?? '—')) ?> | Estado <?= htmlspecialchars((string)($ctx['estado'] ?? '—')) ?> | Temporada <?= htmlspecialchars((string)($ctx['temporada'] ?? '—')) ?>.
+                    Contexto: Clima <?= htmlspecialchars($temperatura) ?>°C | Temp. Máxima <?= htmlspecialchars($temperatura) ?>°C | Suelo <?= htmlspecialchars($suelo ?: '—') ?> | Estado <?= htmlspecialchars($estado) ?> | Temporada <?= htmlspecialchars($temporada) ?>.
                 </div>
-                <?php if(empty($recosTop)): ?>
-                    <p style="font-size:13px;color:var(--text-muted);">No se generaron recomendaciones con el contexto actual.</p>
+                
+                <!-- Explicación del sistema de scoring -->
+                <div style="background:rgba(124,179,66,0.1);border:1px solid rgba(124,179,66,0.3);border-radius:8px;padding:12px;margin-bottom:16px;">
+                    <h6 style="margin:0 0 8px 0;color:var(--accent);font-size:0.9rem;font-weight:600;">📊 Sistema de Puntuación (Score)</h6>
+                    <div style="font-size:12px;color:var(--text-secondary);line-height:1.4;">
+                        <p style="margin:0 0 8px 0;"><strong>Máximo 10 puntos:</strong></p>
+                        <ul style="margin:0;padding-left:16px;">
+                            <li><strong>Temperatura (4 pts):</strong> Rango ideal vs temperatura actual</li>
+                            <li><strong>Estado/Región (3 pts):</strong> Compatibilidad geográfica</li>
+                            <li><strong>Temporada (3 pts):</strong> Época de siembra óptima</li>
+                        </ul>
+                        <p style="margin:8px 0 0 0;font-style:italic;">💡 Haz click en cualquier cultivo para ver detalles completos</p>
+                    </div>
+                </div>
+                
+                <?php if (empty($recomendaciones)): ?>
+                    <p style="font-size:13px;color:var(--text-muted);">No se encontraron cultivos compatibles con las condiciones actuales.</p>
                 <?php else: ?>
-                <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
-                    Se muestran <?= count($recosTop) ?> coincidencias únicas con score &gt; 0 (máx. 10).
-                </p>
-                <div class="metrics-grid">
-                    <?php foreach($recosTop as $r): $p = $r['producto']; ?>
-                        <div class="metric-card" style="transform:none;opacity:1;">
-                            <h3><?= htmlspecialchars($p['nombre']) ?></h3>
-                            <div class="value">Score: <?= htmlspecialchars((string)$r['score']) ?></div>
-                            <small>Clima: <?= htmlspecialchars($p['clima']) ?> | Rango: <?= htmlspecialchars((string)$p['t_min']) ?>–<?= htmlspecialchars((string)$p['t_max']) ?>°C | Suelo: <?= htmlspecialchars($p['suelo']) ?> | Época: <?= htmlspecialchars($p['epoca_siembra']) ?></small>
-                            <?php if(!empty($r['reasons'])): ?>
-                                <ul style="margin:8px 0 0;padding-left:18px;color:var(--text-secondary);">
-                                    <?php foreach($r['reasons'] as $reason): ?>
-                                        <li><?= htmlspecialchars($reason) ?></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
+                    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+                        Se muestran <?= count($recomendaciones) ?> coincidencias únicas con score &gt; 0 (máx. 10).
+                    </p>
+                    <div class="metrics-grid">
+                        <?php foreach ($recomendaciones as $index => $rec): 
+                            $cultivo = $rec['cultivo'];
+                            $score = $rec['score'];
+                            $reasons = $rec['reasons'];
+                            $key = strtolower(str_replace([' ', 'á', 'é', 'í', 'ó', 'ú', 'ñ'], ['_', 'a', 'e', 'i', 'o', 'u', 'n'], $cultivo['nombre']));
+                        ?>
+                            <div class="metric-card" style="transform:none;opacity:1;" data-product="<?= htmlspecialchars($key) ?>">
+                                <h3><?= htmlspecialchars($cultivo['nombre']) ?></h3>
+                                <div class="value">Score: <?= htmlspecialchars($score) ?></div>
+                                <small>
+                                    Clima: <?= htmlspecialchars($cultivo['clima']) ?> | 
+                                    Rango: <?= htmlspecialchars($cultivo['t_min']) ?>–<?= htmlspecialchars($cultivo['t_max']) ?>°C | 
+                                    Suelo: <?= htmlspecialchars($cultivo['suelo']) ?> | 
+                                    Época: <?= htmlspecialchars($cultivo['epoca_siembra']) ?>
+                                </small>
+                                <?php if (!empty($reasons)): ?>
+                                    <ul style="margin:8px 0 0;padding-left:18px;color:var(--text-secondary);">
+                                        <?php foreach ($reasons as $reason): ?>
+                                            <li><?= htmlspecialchars($reason) ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 <?php endif; ?>
             <?php endif; ?>
         </section>
     </div>
-    <?php if($resultado): ?>
-    <?php $rAgri = $resultado['resumen_agricultor'] ?? null; ?>
-    <?php $chill_real_display = $chill_real ?? null; ?>
-    <div class="page-card" id="panelEsencial">
-        <div class="page-header">
-            <h2>Vista Esencial para el Agricultor</h2>
+    
+<!-- Modal de detalles -->
+<div class="modal-overlay" id="modalDetalles">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Detalles del Cultivo</h3>
+            <button class="modal-close" onclick="cerrarModal()">×</button>
         </div>
-        <section class="card">
-            <?php if($rAgri): ?>
-                <div class="metrics-grid" id="metricsGrid">
-            <div class="metric-card" id="mcVariedad">
-                <h3>VARIEDAD</h3>
-                <div class="value"><?= htmlspecialchars($rAgri['variedad']) ?></div>
-                <small>Selección actual</small>
-            </div>
-            <div class="metric-card" id="mcFloracion">
-                <h3>FLORACIÓN</h3>
-                <div class="value"><?= htmlspecialchars($rAgri['floracion']) ?></div>
-                <small>Fecha base ciclo</small>
-            </div>
-            <div class="metric-card window" id="mcVentana">
-                <h3>VENTANA COSECHA</h3>
-                <div class="value" style="font-size:.95rem;"><?= htmlspecialchars($rAgri['ventana']['inicio']) ?> → <?= htmlspecialchars($rAgri['ventana']['fin']) ?></div>
-                <small>Inicio ↔ Fin recomendados</small>
-            </div>
-            <div class="metric-card shelf" id="mcCosecha">
-                <h3>COSECHA ESTIMADA</h3>
-                <div class="value"><?= htmlspecialchars($rAgri['cosecha_estimada']) ?></div>
-                <small>Fecha objetivo</small>
-            </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Contenido se carga dinámicamente -->
+        </div>
+    </div>
+</div>
+
+</main>
+
+<script>
+// Datos de cultivos para modales - generados dinámicamente desde BD
+const cultivosData = {
+    <?php if ($conexionExitosa && !empty($recomendaciones)): ?>
+        <?php foreach ($recomendaciones as $index => $rec): 
+            $cultivo = $rec['cultivo'];
+            $key = strtolower(str_replace([' ', 'á', 'é', 'í', 'ó', 'ú', 'ñ'], ['_', 'a', 'e', 'i', 'o', 'u', 'n'], $cultivo['nombre']));
             
-            <?php $estado = $rAgri['estado_frio']; $estadoClase='cold-ok'; if($estado==='bajo'){ $estadoClase='cold-low'; } elseif($estado==='medio'){ $estadoClase='cold-mid'; } elseif($estado==='estable'){ $estadoClase='cold-ok'; } else { $estadoClase=''; } ?>
-            
-        </div>
-        <div style="margin-top:14px;font-size:13px;color:var(--text-secondary);">
-            <strong>Recomendación principal:</strong> <?= htmlspecialchars($rAgri['recomendacion']) ?><br/>
-            <?php if(!empty($rAgri['alerta_clave'])): ?>
-                <strong>Alerta destacada:</strong> <?= htmlspecialchars($rAgri['alerta_clave']) ?>
-            <?php endif; ?>
-        </div>
-        <button type="button" id="toggleDetallado" style="margin-top:16px;background:#1976d2;">Ver detalles avanzados</button>
-            <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">Esta vista muestra sólo lo que necesitas para decidir logística y monitoreo diario.</p>
-            <?php else: ?>
-                <p>No se construyó el resumen esencial.</p>
-            <?php endif; ?>
-        </section>
-    </div>
-    <div id="bloqueCompleto" style="display:none;">
-    <div class="page-card">
-        <div class="page-header">
-            <h2>Resumen</h2>
-        </div>
-        <section class="card">
-            <div class="grid">
-        <div class="dato"><strong><?= htmlspecialchars($resultado['nombre_variedad']) ?></strong><span>Variedad</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['fecha_floracion']) ?></strong><span>Fecha Floración</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['dias_flor_cosecha']) ?></strong><span>Días Flor-Cosecha</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['fecha_cosecha_estimada']) ?></strong><span>Fecha Estimada</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['ventana_inicio']) ?></strong><span>Ventana Inicio</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['ventana_fin']) ?></strong><span>Ventana Fin</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['vida_anaquel_dias']) ?></strong><span>Vida Anaquel (días)</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['fecha_limite_anaquel']) ?></strong><span>Límite Anaquel</span></div>
-        <div class="dato"><strong><?= htmlspecialchars((string)$resultado['ajuste_aplicado_dias']) ?></strong><span>Ajuste por frío</span></div>
-        <div class="dato"><strong><?= htmlspecialchars((string)$resultado['horas_frio_acumuladas']) ?></strong><span>Horas Frío Acum.</span></div>
-        <div class="dato"><strong><?= htmlspecialchars((string)$resultado['horas_frio_requeridas']) ?></strong><span>Horas Frío Req.</span></div>
-    <div class="dato"><strong><?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%</strong><span>Avance frío</span></div>
-    </div>
-    <?php
-        // Interpretación amigable
-        $porc = (float)$resultado['porcentaje_frio'];
-        $ajuste = (int)$resultado['ajuste_aplicado_dias'];
-        if ($porc < 80) { $estadoFrio = 'b-riesgo-alto'; $textoFrio = 'El frío acumulado es bajo (' . $porc . '%). Se aplicó un ajuste de +' . $ajuste . ' días para evitar cosecha prematura.'; }
-        elseif ($porc < 90) { $estadoFrio = 'b-riesgo-medio'; $textoFrio = 'El frío va cerca del objetivo (' . $porc . '%). Ajuste ligero de +' . $ajuste . ' días.'; }
-        else { $estadoFrio = 'b-riesgo-bajo'; $textoFrio = 'Objetivo de frío prácticamente cumplido (' . $porc . '%). Fecha estimada estable.'; }
-    ?>
-    <div class="info"><span class="badge <?= $estadoFrio ?>">Frío <?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%</span> <?= htmlspecialchars($textoFrio) ?></div>
-    <p style="margin-top:10px;font-size:13px;color:var(--text-secondary);">Las horas frío se contabilizan (0°C–7°C). Si no había datos previos se estimó un bloque reciente (≈30 días). Un menor porcentaje retrasa la fecha objetivo para no comprometer calidad.</p>
-    <h3>Alertas</h3>
-    <?php if(count($resultado['alertas'])===0): ?>
-        <div class="ok">Sin alertas relevantes.</div>
-    <?php else: foreach($resultado['alertas'] as $a): ?>
-        <div class="alerta"><?= htmlspecialchars($a) ?></div>
-    <?php endforeach; endif; ?>
-        </section>
-    </div>
-    <div class="page-card">
-        <div class="page-header">
-            <h2>Desglose Detallado</h2>
-        </div>
-        <section class="card">
-            <p style="font-size:13px;color:var(--text-secondary);">Cada métrica incluye una explicación corta y otra amplia para reforzar comprensión incluso sin experiencia técnica o agrícola.</p>
-            <p style="font-size:12px;color:var(--text-secondary);background:var(--bg-secondary);border:1px solid var(--border);padding:10px 12px;border-radius:10px;line-height:1.35;">
-                <strong>Metodología Prob. Éxito (versión heurística 0.2):</strong> Partimos del % de horas frío cumplidas comparado con lo requerido, aplicamos penalización por días de ajuste (déficit térmico) y añadimos bonificación incremental si el cumplimiento es alto (≥95% sin ajuste). Ahora se incorpora un factor adicional de <em>chill portions</em> estimadas (heurística): rangos mayores de porciones aportan bonificación (ej. ≥40 → +4 pts). Futuras versiones integrarán: riesgo de heladas severas, anomalías de radiación, estrés hídrico y validación fenológica visual. <strong>Nota:</strong> Esta probabilidad no garantiza rendimiento, sino la consistencia temporal y de calidad prevista bajo supuestos estándar de manejo.
-            </p>
-    <?php if(isset($resultado['detalles']) && is_array($resultado['detalles'])): ?>
-        <?php foreach($resultado['detalles'] as $clave => $info): ?>
-            <div style="margin-bottom:18px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-secondary);">
-                <h3 style="margin:0 0 8px;font-size:15px;letter-spacing:.4px;color:var(--text-primary);">🔍 <?= htmlspecialchars($info['titulo']) ?></h3>
-                <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;">
-                    <div style="min-width:180px;font-size:13px;line-height:1.3;color:var(--text-primary);">
-                        <strong>Valor:</strong> <span style="color:var(--accent);"><?= htmlspecialchars(is_scalar($info['valor']) ? (string)$info['valor'] : (is_array($info['valor'])? json_encode($info['valor']) : '')) ?></span>
-                    </div>
-                    <div style="flex:1;min-width:240px;font-size:12.5px;color:var(--text-secondary);">
-                        <strong>Explicación corta:</strong><br/>
-                        <?= htmlspecialchars($info['explicacion_corta']) ?><br/>
-                        <strong style="display:block;margin-top:6px;">Explicación extensa:</strong>
-                        <span style="display:block;margin-top:2px;"><?= htmlspecialchars($info['explicacion_extensa']) ?></span>
-                        <span style="display:block;margin-top:6px;color:var(--text-muted);font-style:italic;">Resumen: <?= htmlspecialchars($info['explicacion_corta']) ?>.</span>
-                    </div>
-                </div>
-            </div>
+            // Generar descripción básica si no existe
+            $descripcion = $cultivo['recomendaciones'] ?? 'Cultivo recomendado para las condiciones de tu región.';
+        ?>
+    "<?= $key ?>": {
+        nombre: <?= json_encode($cultivo['nombre']) ?>,
+        descripcion: <?= json_encode($descripcion) ?>,
+        requerimientos: {
+            temperatura: <?= json_encode($cultivo['t_min'] . '-' . $cultivo['t_max'] . '°C') ?>,
+            suelo: <?= json_encode($cultivo['suelo']) ?>,
+            clima: <?= json_encode($cultivo['clima']) ?>,
+            estados: <?= json_encode($cultivo['estados']) ?>
+        },
+        siembra: {
+            epoca: <?= json_encode($cultivo['epoca_siembra']) ?>,
+            informacion: "Consulta las recomendaciones específicas para tu región"
+        },
+        cuidados: [
+            <?= json_encode($cultivo['recomendaciones'] ?? 'Seguir las prácticas agrícolas recomendadas para la región') ?>
+        ]
+    }<?= $index < count($recomendaciones) - 1 ? ',' : '' ?>
         <?php endforeach; ?>
     <?php else: ?>
-        <p>No hay detalles disponibles.</p>
+    // No hay cultivos disponibles
     <?php endif; ?>
-    <?php if(isset($resultado['debug_calc'])): $dbg = $resultado['debug_calc']; ?>
-        <div style="margin-top:12px;padding:12px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-secondary);">
-            <h4 style="color:var(--text-primary);">Depuración cálculo probabilidad</h4>
-            <pre style="font-size:13px;color:var(--text-secondary);white-space:pre-wrap;"><?= htmlspecialchars(json_encode($dbg, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)) ?></pre>
-        </div>
-    <?php endif; ?>
-    <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">Fin del desglose. Puedes volver arriba para cambiar variedad o fecha y recalcular el conjunto completo de métricas y sus explicaciones repetitivas.</p>
-        </section>
-    </div>
-    <div class="page-card">
-        <div class="page-header">
-            <h2>Visualizaciones simplificadas</h2>
-        </div>
-        <section class="card">
-            <div class="chart-wrapper">
-                <div class="chart-box" aria-label="Progreso de horas frío" role="group">
-                    <h4>Avance de Horas Frío</h4>
-                    <div class="progress-wrap" title="Porcentaje de horas frío acumuladas sobre lo requerido">
-                        <div class="progress-bar" id="barFrio"></div>
-                <div class="progress-label" id="labelFrio">0%</div>
-            </div>
-            <div class="explicacion">Necesarias: <strong><?= htmlspecialchars((string)$resultado['horas_frio_requeridas']) ?></strong> | Acumuladas: <strong><?= htmlspecialchars((string)$resultado['horas_frio_acumuladas']) ?></strong>. El avance ideal es ≥90% para una fecha de cosecha estable.</div>
-        </div>
-        <div class="chart-box" aria-label="Línea temporal" role="group">
-            <h4>Fechas Clave</h4>
-            <div class="timeline" id="timeline">
-                <div class="t-step">
-                    <h5>Floración</h5>
-                    <p><?= htmlspecialchars($resultado['fecha_floracion']) ?></p>
-                </div>
-                <div class="connector"></div>
-                <div class="t-step ventana-box">
-                    <h5>Ventana Cosecha</h5>
-                    <p><?= htmlspecialchars($resultado['ventana_inicio']) ?> → <?= htmlspecialchars($resultado['ventana_fin']) ?></p>
-                </div>
-                <div class="connector"></div>
-                <div class="t-step anaquel-box">
-                    <h5>Límite Anaquel</h5>
-                    <p><?= htmlspecialchars($resultado['fecha_limite_anaquel']) ?></p>
-                </div>
-            </div>
-            <div class="explicacion">La cosecha se recomienda dentro de la ventana para equilibrar desarrollo y firmeza. Después del límite de anaquel la calidad comercial disminuye rápidamente.</div>
-        </div>
-        <div class="chart-box" aria-label="Vida de anaquel" role="group">
-            <h4>Vida de Anaquel Estimada</h4>
-            <div style="display:flex;align-items:center;gap:14px;">
-                <div style="flex:1;">
-                    <div class="progress-wrap" style="height:26px;" title="Días de vida de anaquel estimados">
-                        <div class="progress-bar" id="barAnaquel" style="background:linear-gradient(90deg,#ff9800,#ffb74d);"></div>
-                        <div class="progress-label" id="labelAnaquel">0 días</div>
-                    </div>
-                </div>
-                <div style="min-width:80px;text-align:center;font-size:28px;font-weight:700;color:var(--accent);" id="valorAnaquel">0</div>
-            </div>
-            <div class="explicacion">Valor aproximado de conservación en condiciones estándar. Almacenes más fríos y manejo delicado pueden extender algunos días.</div>
-        </div>
-    </div>
-        </section>
-    </div>
-    <div class="page-card" id="panelHelada" style="display:none;">
-        <div class="page-header">
-            <h2>Riesgo de Helada (SAGRO-IA)</h2>
-        </div>
-        <section class="card">
-            <div id="heladaResumen"></div>
-            <div id="heladaEventos"></div>
-        </section>
-    </div>
-    </div><!-- cierre bloqueCompleto -->
-    <div class="page-card">
-        <div class="page-header">
-            <h2>Predicción climática (próximos días)</h2>
-        </div>
-        <section class="card">
-            <div id="prediccionBox">
-                <p style="font-size:13px;color:var(--text-secondary);">Se muestran Tmin/Tmax diarias y una estimación simple de horas frío esperadas (0–7°C) basada en la predicción almacenada.</p>
-                <table style="width:100%;border-collapse:collapse;margin-top:10px;">
-                    <thead>
-                        <tr style="text-align:left;border-bottom:1px solid #e0e0e0;"><th>Día</th><th>Tmin</th><th>Tmax</th><th>Horas frío prev.</th><th>Horas ≤1°C (48h)</th></tr>
-                    </thead>
-                    <tbody id="predRows"></tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-<script>
-(function(){
-    // Datos PHP -> JS
-    const porcentajeFrio = <?= json_encode($resultado['porcentaje_frio'] ?? 0) ?>; // usado en barra de horas frío
-    const horasReq = <?= json_encode($resultado['horas_frio_requeridas'] ?? 0) ?>;
-    const horasAcum = <?= json_encode($resultado['horas_frio_acumuladas'] ?? 0) ?>;
-    const vidaAnaquel = <?= json_encode($resultado['vida_anaquel_dias']) ?>;
-    const fechaFlor = <?= json_encode($resultado['fecha_floracion']) ?>;
-    const fechaEstimada = <?= json_encode($resultado['fecha_cosecha_estimada']) ?>;
-    const variedadId = <?= json_encode($resultado['variedad_id']) ?>;
+};
 
-    // Barra progreso frío básica (mantener panel simplificado)
-    const barFrio = document.getElementById('barFrio');
-    const labelFrio = document.getElementById('labelFrio');
-    if(barFrio && labelFrio){
-        const porcVal = Math.min(100, Math.max(0, porcentajeFrio));
-        barFrio.style.width = porcVal + '%';
-        labelFrio.textContent = porcVal.toFixed(1) + '%';
-        if (porcVal < 80) { barFrio.style.background = 'linear-gradient(90deg,#c62828,#ef5350)'; }
-        else if (porcVal < 90) { barFrio.style.background = 'linear-gradient(90deg,#f9a825,#fff176)'; }
-    }
-    // Indicador de prob_exito removido: se elimina lógica de ring
-    // Animar tarjetas métricas
-    const metricCards = document.querySelectorAll('.metric-card');
-    let delay=0; metricCards.forEach(mc=>{ setTimeout(()=> mc.classList.add('active'), delay); delay+=140; });
+// Función para mostrar modal
+function mostrarModal(producto) {
+    const data = cultivosData[producto];
+    if (!data) return;
     
-    // Control del select de cultivo
-    const cultivoSelect = document.getElementById('cultivo');
-    if(cultivoSelect){
-        cultivoSelect.addEventListener('change', function(e){
-            if(e.target.value !== 'manzana'){
-                // Mostrar mensaje temporal
-                const alertaTemp = document.createElement('div');
-                alertaTemp.className = 'alerta';
-                alertaTemp.textContent = 'Próximamente disponible. Por ahora solo manzana está habilitada.';
-                alertaTemp.style.opacity = '0';
-                alertaTemp.style.transition = 'opacity 0.3s ease';
-                
-                // Insertar después del formulario
-                const form = e.target.closest('form');
-                form.parentNode.insertBefore(alertaTemp, form.nextSibling);
-                
-                // Animar entrada
-                setTimeout(() => alertaTemp.style.opacity = '1', 10);
-                
-                // Revertir selección a manzana
-                e.target.value = 'manzana';
-                
-                // Remover mensaje después de 3 segundos
-                setTimeout(() => {
-                    alertaTemp.style.opacity = '0';
-                    setTimeout(() => alertaTemp.remove(), 300);
-                }, 3000);
-            }
-        });
-    }
-    // Toggle avanzado y animar timeline
-    const btnToggle = document.getElementById('toggleDetallado');
-    const bloque = document.getElementById('bloqueCompleto');
-    if(btnToggle && bloque){
-        btnToggle.addEventListener('click',()=>{
-            const visible = bloque.style.display==='block';
-            bloque.style.display = visible? 'none':'block';
-            btnToggle.textContent = visible? 'Ver detalles avanzados':'Ocultar detalles avanzados';
-            if(!visible){
-                document.querySelectorAll('.t-step').forEach((st,i)=>{setTimeout(()=>st.classList.add('active'), i*160);});
-            }
-        });
-    }
-
-    // Barra vida anaquel proporcional max 60 días para escala visual (asunción simple)
-    const barAnaquel = document.getElementById('barAnaquel');
-    const labelAnaquel = document.getElementById('labelAnaquel');
-    const valorAnaquel = document.getElementById('valorAnaquel');
-    const maxRef = 60; // referencia escalar
-    const porcentajeAnaquel = Math.min(100, (vidaAnaquel / maxRef) * 100);
-    barAnaquel.style.width = porcentajeAnaquel + '%';
-    labelAnaquel.textContent = vidaAnaquel + ' días';
-    valorAnaquel.textContent = vidaAnaquel;
-
-    // Fetch riesgo helada SAGRO-IA
-    const panelHelada = document.getElementById('panelHelada');
-    const resumenDiv = document.getElementById('heladaResumen');
-    const eventosDiv = document.getElementById('heladaEventos');
-    const url = `../sagro_ia.php?variedad=${variedadId}&inicio=${fechaFlor}&fin=${fechaEstimada}&etapa=floracion&huerto=Planificador`;
-    fetch(url)
-        .then(r => r.json())
-        .then(data => {
-            panelHelada.style.display = 'block';
-            resumenDiv.innerHTML = `<p><strong>Riesgo:</strong> ${data.riesgo} | <strong>Temp. crítica:</strong> ${data.temperatura_critica_aprox.toFixed(1)}°C</p><p>${data.analisis}</p><p><em>${data.recomendacion}</em></p>`;
-            if (data.eventos_riesgo && data.eventos_riesgo.length) {
-                const lista = data.eventos_riesgo.map(ev => `<li>${ev.hora}: ${ev.temp}°C</li>`).join('');
-                eventosDiv.innerHTML = `<h4>Horas cercanas a umbral</h4><ul style='margin:0;padding-left:18px;'>${lista}</ul>`;
-            } else {
-                eventosDiv.innerHTML = '<p>No se detectan horas críticas en el periodo.</p>';
-            }
-        })
-        .catch(err => {
-            panelHelada.style.display = 'block';
-            resumenDiv.innerHTML = '<p>Error consultando SAGRO-IA.</p>';
-            console.error(err);
-        });
-
-    // Predicción climática real: consumir endpoint prediccion_clima.php (agregados diarios)
-    (function cargarPrediccion(){
-        // Podemos ajustar parámetros (dias futuro/pasado) según necesidad del planificador.
-        // Aquí: mostrar 5 días futuros sin pasado.
-        fetch('../prediccion_clima.php?dias=5&pasado=0')
-            .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
-            .then(data => {
-                if(!data || !Array.isArray(data.dias)) {
-                    console.warn('Respuesta inesperada de prediccion_clima.php', data);
-                    return;
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    
+    modalTitle.textContent = `Detalles de ${data.nombre}`;
+    
+    modalBody.innerHTML = `
+        <div class="detail-item">
+            <h4>📋 Descripción</h4>
+            <p>${data.descripcion}</p>
+        </div>
+        
+        <div class="detail-item">
+            <h4>🌡️ Requerimientos Climáticos y de Suelo</h4>
+            <p><strong>Temperatura:</strong> ${data.requerimientos.temperatura}</p>
+            <p><strong>Tipo de suelo:</strong> ${data.requerimientos.suelo}</p>
+            <p><strong>Clima:</strong> ${data.requerimientos.clima}</p>
+            <p><strong>Estados recomendados:</strong> ${data.requerimientos.estados}</p>
+        </div>
+        
+        <div class="detail-item">
+            <h4>🌱 Siembra</h4>
+            <p><strong>Época de siembra:</strong> ${data.siembra.epoca}</p>
+            <p><strong>Información adicional:</strong> ${data.siembra.informacion}</p>
+        </div>
+        
+        <div class="detail-item">
+            <h4>🔧 Cuidados y Recomendaciones</h4>
+            <ul>
+                ${Array.isArray(data.cuidados) ? 
+                    data.cuidados.map(cuidado => `<li>${cuidado}</li>`).join('') :
+                    `<li>${data.cuidados}</li>`
                 }
-                const tbody = document.getElementById('predRows');
-                if(!tbody) { console.error('Tabla de predicción no encontrada (#predRows)'); return; }
-                if(!data.dias.length){
-                    tbody.innerHTML = '<tr><td colspan="5">Sin datos climáticos disponibles para el rango solicitado.</td></tr>';
-                    return;
-                }
-                // Construir filas reales: dia, Tmin, Tmax, Horas frío, Horas ≤1°C
-                const filasHtml = data.dias.map(d => {
-                    const tmin = d.tmin !== null && d.tmin !== undefined ? d.tmin+'°C' : '—';
-                    const tmax = d.tmax !== null && d.tmax !== undefined ? d.tmax+'°C' : '—';
-                    
-                    return `<tr><td>${d.dia}</td><td>${tmin}</td><td>${tmax}</td><td>`;
-                }).join('');
-                tbody.innerHTML = filasHtml;
-            })
-            .catch(err => { console.error('Predicción climática falló', err); const tbody = document.getElementById('predRows'); if(tbody){tbody.innerHTML = '<tr><td colspan="5">Error cargando predicción.</td></tr>';}});
-    })();
-})();
+            </ul>
+        </div>
+    `;
+    
+    document.getElementById('modalDetalles').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+// Función para cerrar modal
+function cerrarModal() {
+    document.getElementById('modalDetalles').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Agregar click listeners a las tarjetas
+    document.querySelectorAll('.metric-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const producto = this.getAttribute('data-product');
+            if (producto) {
+                mostrarModal(producto);
+            }
+        });
+    });
+    
+    // Cerrar modal al hacer click fuera
+    document.getElementById('modalDetalles').addEventListener('click', function(e) {
+        if (e.target === this) {
+            cerrarModal();
+        }
+    });
+    
+    // Cerrar modal con tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            cerrarModal();
+        }
+    });
+});
 </script>
-<?php endif; ?>
-</main>
+
 <script src="../recursos/js/animations.js" defer></script>
 </body>
 </html>
