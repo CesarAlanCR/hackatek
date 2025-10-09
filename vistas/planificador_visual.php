@@ -420,59 +420,12 @@ small{color:var(--text-muted);}
 </head>
 <body>
 <main class="container" style="padding:40px 0">
-    <div class="page-card">
-        <div class="page-header">
-        <a href="index.php" class="btn-back">← Volver</a>
-        <h2>Planificador Visual de Cosecha</h2>
-      </div>
-        <section class="card">
-            
-            <form method="POST" class="controls">
-                <div class="form-row">
-                    <label for="cultivo">
-                        Cultivo
-                        <select name="cultivo" id="cultivo">
-                            <option value="manzana" selected>🍎 Manzana</option>
-                            <option value="aguacate" disabled>🥑 Aguacate (próximo)</option>
-                            <option value="frijol" disabled>🫘 Frijol (próximo)</option>
-                            <option value="trigo" disabled>🌾 Trigo (próximo)</option>
-                            <option value="maiz" disabled>🌽 Maíz (próximo)</option>
-                            <option value="tomate" disabled>🍅 Tomate (próximo)</option>
-                            <option value="chile" disabled>🌶️ Chile (próximo)</option>
-                        </select>
-                        <small style="display:block;color:var(--text-muted);margin-top:4px;">Solo manzana habilitada.</small>
-                    </label>
-                    <label for="variedad_id">
-                        Variedad
-                        <select name="variedad_id" id="variedad_id" required>
-                            <option value="">-- Selecciona variedad --</option>
-                            <?php foreach($variedades as $v): ?>
-                                <option value="<?= htmlspecialchars((string)$v['id']) ?>" <?= (isset($variedad_id) && $variedad_id == $v['id']) ? 'selected' : '' ?>><?= htmlspecialchars($v['nombre_variedad']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label for="fecha_floracion">
-                        Fecha Floración
-                        <input type="date" name="fecha_floracion" id="fecha_floracion" value="<?= htmlspecialchars($_POST['fecha_floracion'] ?? '') ?>" required />
-                    </label>
-                </div>
-                <button type="submit" name="accion" value="calcular" class="btn">Ver estimación</button>
-                <button type="submit" name="accion" value="actualizar_clima" class="btn btn-secondary">Actualizar clima</button>
-            </form>
-            <?php if($mensaje): ?><div class="alerta"><?= htmlspecialchars($mensaje) ?></div><?php endif; ?>
-            <div class="help-toggle" onclick="document.getElementById('ayudaConceptos').style.display = document.getElementById('ayudaConceptos').style.display==='none'?'block':'none';">¿Qué significan las horas frío y la ventana de cosecha?</div>
-            <div id="ayudaConceptos">
-                <strong>Horas frío:</strong> Son horas con temperatura baja (0°C a 7°C) necesarias para que el árbol cumpla su ciclo y la fruta alcance calidad óptima. <br/>
-                <strong>Ventana de cosecha:</strong> Periodo recomendado para cortar la fruta: demasiado pronto falta desarrollo; demasiado tarde puede perder firmeza. <br/>
-                <strong>Ajuste por frío:</strong> Si el frío acumulado es menor al esperado se retrasa un poco la fecha estimada. <br/>
-                <em>Consejo:</em> Usa "Actualizar clima" si pasaron varias horas o días desde la última consulta.
-            </div>
-        </section>
-    </div>
     <!-- Recomendación Inteligente basada en contexto -->
     <div class="page-card" style="margin-top:18px;">
-        <div class="page-header">
-            <h2>Recomendación Inteligente (SAGRO-IA)</h2>
+        <div class="map-header" style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:rgba(30,41,54,0.6);border-bottom:1px solid var(--border);">
+            <a href="index.php" class="btn-back">← Volver</a>
+            <h5 style="margin:0;color:var(--accent);font-size:1.4rem;font-weight:700;flex:1;text-align:center;letter-spacing:-0.5px;">Recomendación Inteligente (SAGRO-IA)</h5>
+            <div style="width:100px"></div>
         </div>
         <section class="card">
             <?php if(!$dbOk): ?>
