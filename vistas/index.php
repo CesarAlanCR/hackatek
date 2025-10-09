@@ -39,6 +39,26 @@
 					<div id="weather-map" aria-label="Mapa de clima y ubicación"></div>
 				</div>
 				<div class="preview-info card">
+					<!-- Buscador de ciudades -->
+					<div class="city-search-container">
+						<div class="search-input-group">
+							<input 
+								type="text" 
+								id="city-search-input" 
+								placeholder="Buscar ciudad en México (ej: Ciudad de México, Guadalajara...)"
+								autocomplete="off"
+							>
+							<button id="search-city-btn" class="btn btn-secondary" title="Buscar ciudad">
+								🔍
+							</button>
+							<button id="current-location-btn" class="btn btn-secondary" title="Obtener ubicación actual">
+								📍
+							</button>
+						</div>
+						<div id="city-search-results" class="search-results" style="display: none;"></div>
+						<div id="current-city-display" class="current-city"></div>
+					</div>
+					
 					<h3>Clima</h3>
 					<p>Vista rápida: imagen satelital / drone y resumen meteorológico actual.</p>
 					<ul>
@@ -136,57 +156,5 @@
 	</script>
 	<script src="../recursos/js/class.js" defer></script>
 	<script src="../recursos/js/animations.js" defer></script>
-	<script>
-	// Modal wiring for module buttons and "Ver detalle"
-	(function(){
-		const modal = document.getElementById('module-modal');
-		const modalTitle = document.getElementById('modal-title');
-		const modalBody = document.getElementById('modal-body');
-		const modalClose = modal.querySelector('.modal-close');
-
-		function openModal(title, bodyHtml){
-			modalTitle.textContent = title;
-			modalBody.innerHTML = bodyHtml || '';
-			modal.setAttribute('aria-hidden', 'false');
-			// trap focus to close button for simple accessibility
-			modalClose.focus();
-		}
-
-		function closeModal(){
-			modal.setAttribute('aria-hidden', 'true');
-			modalTitle.textContent = '';
-			modalBody.innerHTML = '';
-		}
-
-		// Open modal from module buttons (non-anchor buttons)
-		document.querySelectorAll('.module-card .btn').forEach(btn => {
-			// if the button is an anchor (link) let it navigate
-			if (btn.tagName.toLowerCase() === 'a') return;
-			btn.addEventListener('click', (e) => {
-				e.preventDefault();
-				const card = btn.closest('.module-card');
-				const title = card.querySelector('h3') ? card.querySelector('h3').innerText : 'Detalle';
-				const desc = card.querySelector('p') ? card.querySelector('p').innerText : '';
-				const body = '<p>' + desc + '</p><p><em>Funcionalidad en desarrollo.</em></p>';
-				openModal(title, body);
-			});
-		});
-
-		// Ver detalle clima
-		document.getElementById('btn-ver-detalle-clima').addEventListener('click', function(e){
-			e.preventDefault();
-			openModal('Detalle Clima', '<p>Aquí se mostrarán gráficos y datos meteorológicos más detallados.</p>');
-		});
-
-		// Close handlers
-		modalClose.addEventListener('click', closeModal);
-		modal.addEventListener('click', function(e){
-			if (e.target === modal) closeModal();
-		});
-		document.addEventListener('keydown', function(e){
-			if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') closeModal();
-		});
-	})();
-	</script>
 </body>
 </html>

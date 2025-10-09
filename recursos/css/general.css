@@ -443,11 +443,137 @@ html,body{
 .modal .soil-title { color: #8D6E63; }
 .modal .location-title { color: #4CAF50; }
 
+/* Buscador de ciudades */
+.city-search-container {
+	margin-bottom: 15px;
+	padding: 12px;
+	background: var(--bg-secondary);
+	border-radius: var(--radius);
+	border: 1px solid var(--border);
+}
+
+.search-input-group {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+#city-search-input {
+	flex: 1;
+	padding: 8px 12px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--bg-card);
+	color: var(--text-primary);
+	font-size: 0.9rem;
+	transition: var(--transition-fast);
+}
+
+#city-search-input:focus {
+	outline: none;
+	border-color: var(--green-3);
+	box-shadow: 0 0 0 2px var(--green-glow);
+}
+
+#city-search-input::placeholder {
+	color: var(--text-muted);
+}
+
+.search-results {
+	position: relative;
+	background: var(--bg-card);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
+	max-height: 200px;
+	overflow-y: auto;
+	z-index: 1000;
+}
+
+.search-result-item {
+	padding: 10px 12px;
+	cursor: pointer;
+	border-bottom: 1px solid var(--border);
+	transition: var(--transition-fast);
+}
+
+.search-result-item:hover {
+	background: var(--bg-card-hover);
+}
+
+.search-result-item:last-child {
+	border-bottom: none;
+}
+
+.search-result-item .city-name {
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.search-result-item .city-details {
+	font-size: 0.85rem;
+	color: var(--text-secondary);
+	margin-top: 2px;
+}
+
+.current-city {
+	font-size: 0.85rem;
+	color: var(--text-secondary);
+	padding: 4px 0;
+}
+
+.current-city.active {
+	color: var(--green-3);
+	font-weight: 500;
+}
+
+.btn-secondary {
+	background: var(--bg-card);
+	color: var(--text-secondary);
+	border: 1px solid var(--border);
+	padding: 8px 12px;
+	border-radius: var(--radius);
+	cursor: pointer;
+	transition: var(--transition-fast);
+	font-size: 0.9rem;
+	min-width: 40px;
+}
+
+.btn-secondary:hover {
+	background: var(--bg-card-hover);
+	border-color: var(--green-3);
+	color: var(--text-primary);
+}
+
+.btn-secondary:focus {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--green-glow);
+}
+
 /* Responsive touches */
 @media (max-width:640px){
 	.main-nav{display:none}
 	.brand{font-size:1.2rem}
 	.hero{padding:18px 0}
+	
+	/* Buscador responsivo */
+	.search-input-group {
+		flex-direction: column;
+		gap: 6px;
+	}
+	
+	.search-input-group .btn-secondary {
+		width: 100%;
+		justify-content: center;
+	}
+	
+	.city-search-container {
+		padding: 10px;
+	}
+	
+	#city-search-input {
+		font-size: 16px; /* Evita zoom en iOS */
+	}
 }
 
 /* Accessibility small helpers */

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 09-10-2025 a las 03:26:28
+-- Tiempo de generación: 09-10-2025 a las 08:50:10
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -845,6 +845,101 @@ CREATE TABLE `horas_frio_acumuladas` (
 INSERT INTO `horas_frio_acumuladas` (`id`, `lat`, `lon`, `temporada`, `horas_frio`, `fecha_corte`, `fuente`, `updated_at`) VALUES
 (1, 28.400000, -106.860000, '2025', 0, '2025-10-09', 'open-meteo', '2025-10-09 00:34:22');
 
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `semillas`
+--
+
+CREATE TABLE `semillas` (
+  `ID` int(11) NOT NULL,
+  `Parte_Comestible` varchar(50) DEFAULT NULL,
+  `Hortaliza` varchar(100) DEFAULT NULL,
+  `Nombre_Cientifico` varchar(150) DEFAULT NULL,
+  `Clima` varchar(50) DEFAULT NULL,
+  `pH` varchar(20) DEFAULT NULL,
+  `Temperatura` varchar(50) DEFAULT NULL,
+  `Epoca_Siembra` varchar(50) DEFAULT NULL,
+  `Tipo_Siembra` varchar(50) DEFAULT NULL,
+  `Distancia_Minima_Entre_Plantas` varchar(50) DEFAULT NULL,
+  `Tiempo_Cosecha` varchar(50) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `semillas`
+--
+
+INSERT INTO `semillas` (`ID`, `Parte_Comestible`, `Hortaliza`, `Nombre_Cientifico`, `Clima`, `pH`, `Temperatura`, `Epoca_Siembra`, `Tipo_Siembra`, `Distancia_Minima_Entre_Plantas`, `Tiempo_Cosecha`) VALUES
+(1, 'Hortalizas de Raíz', 'Betabel', 'Beta vulgaris L.', 'Frío', '6.5-7.5', '16-21°C', 'Todo el año', 'Directa o Indirecta', '10 cm', NULL),
+(2, 'Hortalizas de Raíz', 'Zanahoria', 'Saucus carota L.', 'Templado', '6.8-5.5', '16-18°C', 'Todo el año', 'Directa', '3 cm', NULL),
+(3, 'Hortalizas de Raíz', 'Rábano', 'Raphanus sativus L.', 'Templado', '6.8-5.5', '18-22°C', 'Todo el año', 'Directa', '3 cm', NULL),
+(4, 'Hortalizas de Raíz', 'Jícama', 'Pachyrrhizus erosus L.', 'Cálido', '5.5-6.5', '18-30°C', 'Primavera-verano', 'Directa', '12 cm', NULL),
+(5, 'Hortalizas de Raíz', 'Nabo', 'Brassica rapa L.', 'Templado', '5.5-6.5', '16-21°C', 'Todo el año', 'Directa', '10 cm', NULL),
+(6, 'Hortalizas de Raíz', 'Salsifí', 'Tragopon porrifolius L.', 'Templado', '5.5-6.5', '16-21°C', 'Todo el año', 'Directa', '3 cm', NULL),
+(7, 'Hortalizas de Raíz', 'Yuca', 'Manihot esculenta L.', 'Cálido', '5.5-6.5', '16-21°C', 'Primavera-verano', 'Directa', '90 cm', NULL),
+(8, 'Hortalizas de Raíz', 'Camote', 'Ipomoea batatas L.', 'Cálido', '5.5-6.5', '18-22°C', 'Otoño', 'Directa', '50 cm', NULL),
+(9, 'Hortalizas de Tallo', 'Esparrago', 'Asparagus officinalis L.', 'Templado', '6.8-6.0', '2-18°C', 'Invierno-primavera', 'Indirecta', '10 cm', NULL),
+(10, 'Hortalizas de Tallo', 'Colinabo', 'Brassica oleracea var. Gongylodes L.', 'Templado', '5.5-6.5', '16-21°C', 'Todo el año', 'Directa', '10 cm', NULL),
+(11, 'Hortalizas de Tallo', 'Papa', 'Solanum tuberosum L.', 'Templado', '6.8-6.0', '23°C', 'Invierno-primavera', 'Indirecta', '40 cm', NULL),
+(12, 'Hortalizas de Hojas', 'Cebolla', 'Allium cepa L.', 'Frío', '6.8-6.0', '22-24°C', 'Todo el año', 'Indirecta', '12 cm', NULL),
+(13, 'Hortalizas de Hojas', 'Ajo', 'Allium sativum L.', 'Frío', '6.5-5.5', '<15°C, 20°C y 25°C', 'Otoño', 'Directa', '10 cm', NULL),
+(14, 'Hortalizas de Hojas', 'Puerro', 'Allium porrum L.', 'Templado', '5.5-6.5', '16-22°C', 'Todo el año', 'Directa', '8 cm', NULL),
+(15, 'Hortalizas de Hojas', 'Lechuga', 'Lactuca sativa L.', 'Templado', '5.0', '16-22°C', 'Todo el año', 'Indirecta', '30-35 cm', NULL),
+(16, 'Hortalizas de Hojas', 'Col o repollo', 'Brassica oleracea var. Capitata L.', 'Templado', '6.5-6.2', '15-20°C', 'Otoño', 'Directa o Indirecta', '20 cm', NULL),
+(17, 'Hortalizas de Hojas', 'Espinaca', 'Spinacia oleracea L.', 'Templado', '6.0-7.0', '16-18°C', 'Todo el año', 'Directa', '10-12 cm', NULL),
+(18, 'Hortalizas de Hojas', 'Acelga', 'Beta vulgaris var. Cicla L.', 'Frío', '6.5-7.5', '15-18°C', 'Todo el año', 'Directa', '25 cm', NULL),
+(19, 'Hortalizas de Hojas', 'Berro', 'Nasturtium officinale L.', 'Templado', '5.5-6.5', '16-22°C', 'Todo el año', 'Directa', '15 cm', NULL),
+(20, 'Hortalizas de Hojas', 'Perejil', 'Petroselinum crispum L.', 'Templado', '5.5-6.5', '16-22°C', 'Todo el año', 'Directa', '5 cm', NULL),
+(21, 'Hortalizas de Hojas', 'Cilantro', 'Coriandrum sativum L.', 'Templado', '6.5-6.0', '13-24°C', 'Todo el año (excepto meses cálidos)', 'Directa', '3 cm', NULL),
+(22, 'Hortalizas de Hojas', 'Col de Bruselas', 'Brassica oleracea var. Gemmifera DC', 'Templado', '5.5-6.5', '16-22°C', 'Todo el año', 'Indirecta', '55 cm', NULL),
+(23, 'Hortalizas de Hojas', 'Apio', 'Apium graveolens var. Dulce L.', 'Templado', '6.8-6.0', '16-21°C', 'Todo el año', 'Indirecta', '25-30 cm', NULL),
+(24, 'Hortalizas de Hojas', 'Amaranto', 'Amaranthus paniculatus L.', 'Cálido', '5.5-6.5', '16-29°C', 'Todo el año', 'Directa', '3 cm', NULL),
+(25, 'Hortalizas de Flores', 'Alcachofa', 'Cynara scolymus L.', 'Templado-cálido', '6.5-6.0', '13-18°C', 'Verano', 'Directa', '120-250 cm', NULL),
+(26, 'Hortalizas de Flores', 'Brócoli', 'Brassica oleracea var. itálica L.', 'Fríos y frescos', '6.8-6.0', '15-25°C', 'Todo el año', 'Directa o Indirecta', '33 cm', NULL),
+(27, 'Hortalizas de Flores', 'Coliflor', 'Brassica oleracea var. botrytis L.', 'Frío', '6.8-6.0', '20-25°C', 'Primavera-verano', 'Indirecta', '30-35 cm', NULL),
+(28, 'Hortalizas de Fruto', 'Calabacita', 'Cucurbita pepo L.', 'Cálido', '5.5-6.5', '18-28°C', 'Primavera', 'Directa', '50 cm', NULL),
+(29, 'Hortalizas de Fruto', 'Pepino', 'Cucumis sativus L.', 'Cálido', '6.8-5.5', '25°C', 'Primavera-verano', 'Directa', '30-40 cm', NULL),
+(30, 'Hortalizas de Fruto', 'Ejote', 'Phaseolus vulgaris L.', 'Cálido', '5.5-6.5', '18-28°C', 'Primavera', 'Directa', '10 cm', NULL),
+(31, 'Hortalizas de Fruto', 'Chayote', 'Sechium edule L.', 'Cálido', '5.5-6.5', '18-28°C', 'Primavera', 'Directa', 'Guía', NULL),
+(32, 'Hortalizas de Fruto', 'Chile', 'Capsicum annuum L.', 'Cálido', '6.8-5.5', '18-26°C', 'Primavera-verano', 'Indirecta', '40-50 cm', NULL),
+(33, 'Hortalizas de Fruto', 'Ocra', 'Abelmoschus esculentus L.', 'Cálido', '5.5-6.5', '18-26°C', 'Primavera', 'Directa', '20 cm', NULL),
+(34, 'Hortalizas de Fruto', 'Berenjena', 'Solanum melongena L.', 'Cálido', '5.5-6.5', '18-26°C', 'Primavera', 'Directa o Indirecta', '40 cm', NULL),
+(35, 'Hortalizas de Fruto', 'Calabaza', 'Cucurbita spp.', 'Cálido', '5.5-6.5', '18-28°C', 'Primavera', 'Directa', '50 cm', NULL),
+(36, 'Hortalizas de Fruto', 'Melón', 'Cucumis melo L.', 'Cálido', '5.5-6.5', '18-28°C', 'Primavera', 'Directa', '30 cm', NULL),
+(37, 'Hortalizas de Fruto', 'Sandía', 'Citrullus vulgaris', 'Cálido', '6.8-5.0', '18-25°C', 'Primavera-verano', 'Directa', '100 cm', NULL),
+(38, 'Hortalizas de Fruto', 'Jitomate', 'Lycopersicon esculentum', 'Cálido', '6.8-5.0', '22°C', 'Todo el año', 'Directa o Indirecta', '25-50 cm', NULL),
+(39, 'Hortalizas de Fruto', 'Tomate', 'Physalis ixocarpa', 'Cálido', '5.5-6.5', '18-28°C', 'Primavera', 'Directa o Indirecta', '40 cm', NULL),
+(40, 'Hortalizas de Semilla', 'Chícharo', 'Pisum sativum L.', 'Templado-cálido', '6.5-5.3', '14-18°C', 'Invierno-primavera', 'Directa', '3 cm', NULL),
+(41, 'Hortalizas de Semilla', 'Maíz dulce', 'Zea mays L.', 'Cálido', '5.5-6.5', '18-26°C', 'Primavera', 'Directa', '30 cm', NULL),
+(42, 'Hortalizas de Semilla', 'Haba', 'Vicia faba L.', 'Templado-cálido', '5.5-6.5', '18-26°C', 'Invierno-primavera', 'Directa', '45 cm', NULL),
+(43, 'Hortalizas de Raíz', 'Jícama', 'Pachyrrhizus erosus L.', 'Cálido', '5.5-6.5', '18-30°C', 'Primavera-verano', 'Directa', '12 cm', '145 días'),
+(44, 'Hortalizas de Raíz', 'Yuca', 'Manihot esculenta L.', 'Cálido', '5.5-6.5', '16-21°C', 'Primavera-verano', 'Directa', '90 cm', '8 meses'),
+(45, 'Hortalizas de Flores', 'Coliflor', 'Brassica oleracea var. botrytis L.', 'Frío', '6.8-6.0', '20-25°C', 'Primavera-verano', 'Indirecta', '30-35 cm', '90 días'),
+(46, 'Hortalizas de Fruto', 'Pepino', 'Cucumis sativus L.', 'Cálido', '6.8-5.5', '25°C', 'Primavera-verano', 'Directa', '30-40 cm', '90 días'),
+(47, 'Hortalizas de Fruto', 'Chile', 'Capsicum annuum L.', 'Cálido', '6.8-5.5', '18-26°C', 'Primavera-verano', 'Directa', '40-50 cm', '120 días'),
+(48, 'Hortalizas de Fruto', 'Jitomate', 'Lycopersicon esculentum', 'Cálido', '6.8-5.0', '22°C', 'Primavera-verano', 'Directa', '20-50 cm', '120 días'),
+(49, 'Hortalizas de Raíz', 'Camote', 'Ipomoea batatas L.', 'Cálido', '5.5-6.5', '18-22°C', 'Otoño-invierno', 'Directa', '50 cm', '180 días'),
+(50, 'Hortalizas de Hojas', 'Ajo', 'Allium sativum L.', 'Frío', '6.5-5.5', '15-25°C', 'Otoño-invierno', 'Directa', '10 cm', '180 días'),
+(51, 'Hortalizas de Hojas', 'Col o repollo', 'Brassica oleracea var. Capitata L.', 'Templado', '6.5-6.2', '15-20°C', 'Otoño-invierno', 'Directa o Indirecta', '20 cm', '110 días'),
+(52, 'Hortalizas de Flores', 'Alcachofa', 'Cynara scolymus L.', 'Templado-cálido', '6.5-6.0', '13-18°C', 'Otoño-invierno', 'Directa o Indirecta', '120-250 cm', '150 días'),
+(53, 'Hortalizas de Raíz', 'Maíz', 'Zea mays L.', 'Cálido', '5.5-6.5', '18-26°C', 'Todo el año', 'Directa', '30 cm', NULL),
+(54, 'Hortalizas de Raíz', 'Betabel', 'Beta vulgaris L.', 'Frío', '6.5-7.5', '16-21°C', 'Todo el año', 'Directa o Indirecta', '10 cm', NULL),
+(55, 'Hortalizas de Raíz', 'Zanahoria', 'Daucus carota L.', 'Templado', '6.0-7.0', '16-18°C', 'Todo el año', 'Directa', '3 cm', NULL),
+(56, 'Hortalizas de Raíz', 'Rábano', 'Raphanus sativus L.', 'Templado', '6.5-7.0', '18-22°C', 'Todo el año', 'Directa', '3 cm', NULL),
+(57, 'Hortalizas de Raíz', 'Nabo', 'Brassica rapa L.', 'Templado', '5.5-6.5', '16-21°C', 'Todo el año', 'Directa', '10 cm', NULL),
+(58, 'Hortalizas de Raíz', 'Salsifí', 'Tragopon porrifolius L.', 'Templado', '5.5-6.5', '16-21°C', 'Todo el año', 'Directa', '3 cm', NULL),
+(59, 'Hortalizas de Tallo', 'Colinabo', 'Brassica oleracea var. Gongylodes L.', 'Templado', '5.5-6.5', '16-21°C', 'Todo el año', 'Directa', '10 cm', NULL),
+(60, 'Hortalizas de Hojas', 'Puerro', 'Allium porrum L.', 'Templado', '5.5-6.5', '16-22°C', 'Todo el año', 'Directa', '8 cm', NULL),
+(61, 'Hortalizas de Hojas', 'Lechuga', 'Lactuca sativa L.', 'Templado', '5.0', '16-22°C', 'Todo el año', 'Indirecta', '30-35 cm', NULL),
+(62, 'Hortalizas de Hojas', 'Cebolla', 'Allium cepa L.', 'Frío', '6.8-6.0', '22-24°C', 'Todo el año', 'Indirecta', '12 cm', NULL),
+(63, 'Hortalizas de Hojas', 'Espinaca', 'Spinacia oleracea L.', 'Templado', '6.0-7.0', '16-18°C', 'Todo el año', 'Directa', '10-12 cm', NULL),
+(64, 'Hortalizas de Hojas', 'Acelga', 'Beta vulgaris var. Cicla L.', 'Frío', '6.5-7.5', '15-18°C', 'Todo el año', 'Directa', '25 cm', NULL),
+(65, 'Hortalizas de Hojas', 'Berro', 'Nasturtium officinale L.', 'Templado', '5.5-6.5', '16-22°C', 'Todo el año', 'Directa', '15 cm', NULL),
+(66, 'Hortalizas de Hojas', 'Perejil', 'Petroselinum crispum L.', 'Templado', '5.5-6.5', '16-22°C', 'Todo el año', 'Directa', '5 cm', NULL),
+(67, 'Hortalizas de Hojas', 'Apio', 'Apium graveolens var. Dulce L.', 'Templado', '6.8-6.0', '16-21°C', 'Todo el año', 'Indirecta', '25-30 cm', NULL),
+(68, 'Hortalizas de Hojas', 'Amaranto', 'Amaranthus paniculatus L.', 'Cálido', '5.5-6.5', '16-29°C', 'Todo el año', 'Directa', '3 cm', NULL),
+(69, 'Hortalizas de Fruto', 'Jitomate', 'Lycopersicon esculentum', 'Cálido', '6.8-5.0', '22°C', 'Todo el año', 'Directa o Indirecta', '25-50 cm', NULL);
+
 --
 -- Índices para tablas volcadas
 --
@@ -870,6 +965,12 @@ ALTER TABLE `horas_frio_acumuladas`
   ADD UNIQUE KEY `uniq_coord_temp` (`lat`,`lon`,`temporada`,`fecha_corte`);
 
 --
+-- Indices de la tabla `semillas`
+--
+ALTER TABLE `semillas`
+  ADD PRIMARY KEY (`ID`);
+
+--
 -- AUTO_INCREMENT de las tablas volcadas
 --
 
@@ -890,6 +991,12 @@ ALTER TABLE `clima_horas`
 --
 ALTER TABLE `horas_frio_acumuladas`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT de la tabla `semillas`
+--
+ALTER TABLE `semillas`
+  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
