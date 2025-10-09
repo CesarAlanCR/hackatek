@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', function(){
 	if (!window.appState.lastCoords) {
 		window.appState.lastCoords = { lat: 9.7489, lon: -83.7534 }; // Fallback inicial
 	}
+	// Inicializar todas las propiedades necesarias
+	window.appState.currentCity = window.appState.currentCity || '';
+	window.appState.currentState = window.appState.currentState || '';
+	window.appState.currentWeatherData = window.appState.currentWeatherData || {};
+	window.appState.currentSoil = window.appState.currentSoil || '';
 	
 	// Variables de búsqueda de ciudades
 	const citySearchInput = document.getElementById('city-search-input');
@@ -688,15 +693,39 @@ function initWeatherMap(container, apiKey) {
 							.bindPopup(`${cityName}<br>📍 Tu ubicación actual`)
 							.openPopup();
 						
-						// Actualizar estado global
+						// Actualizar estado global completo
 						window.appState.lastCoords = { lat: latitude, lon: longitude };
 						window.appState.currentCity = cityName;
 						
-						// Cargar datos de clima
+						// Extraer estado de la ciudad (formato: "Ciudad, Estado")
+						if (cityName) {
+							const parts = cityName.split(',');
+							if (parts.length > 1) {
+								window.appState.currentState = parts[1].trim();
+							}
+						}
+						
+						// Cargar datos de clima completos
 						if (apiKey) {
 							try {
 								const weatherData = await fetchExtendedWeather(latitude, longitude, apiKey);
 								updateWeatherUIFromData(weatherData);
+								
+								// Guardar datos climáticos completos en el estado global
+								window.appState.currentWeatherData = weatherData;
+								console.log('🌤️ Datos climáticos completos guardados (fallback):', weatherData);
+								
+								// Obtener y guardar tipo de suelo
+								try {
+									const soilData = await getINEGISoilType(latitude, longitude);
+									if (soilData && soilData.soilType) {
+										window.appState.currentSoil = soilData.soilType;
+										console.log('🌱 Tipo de suelo guardado (fallback):', soilData.soilType);
+									}
+								} catch (soilErr) {
+									console.warn('No se pudo obtener tipo de suelo (fallback):', soilErr);
+								}
+								
 							} catch (weatherErr) {
 								console.error('Error cargando clima inicial:', weatherErr);
 							}
@@ -738,11 +767,29 @@ function initWeatherMap(container, apiKey) {
 						selectCity(defaultCenter[0], defaultCenter[1], 'Ciudad de México, México');
 					}, 200);
 				} else if (apiKey) {
-					// Fallback manual
+					// Fallback manual completo
 					window.appState.lastCoords = { lat: defaultCenter[0], lon: defaultCenter[1] };
+					window.appState.currentCity = 'Ciudad de México, México';
+					window.appState.currentState = 'Ciudad de México';
+					
 					fetchExtendedWeather(defaultCenter[0], defaultCenter[1], apiKey)
-						.then(updateWeatherUIFromData)
-						.catch(err => console.error('Error cargando clima fallback:', err));
+						.then(weatherData => {
+							updateWeatherUIFromData(weatherData);
+							
+							// Guardar datos climáticos completos
+							window.appState.currentWeatherData = weatherData;
+							console.log('🌤️ Datos climáticos completos guardados (fallback CDMX):', weatherData);
+							
+							// Obtener tipo de suelo
+							return getINEGISoilType(defaultCenter[0], defaultCenter[1]);
+						})
+						.then(soilData => {
+							if (soilData && soilData.soilType) {
+								window.appState.currentSoil = soilData.soilType;
+								console.log('🌱 Tipo de suelo guardado (fallback CDMX):', soilData.soilType);
+							}
+						})
+						.catch(err => console.error('Error cargando datos fallback:', err));
 				}
 			},
 			geoOptions
@@ -763,11 +810,29 @@ function initWeatherMap(container, apiKey) {
 				selectCity(defaultCenter[0], defaultCenter[1], 'Ciudad de México, México');
 			}, 200);
 		} else if (apiKey) {
-			// Fallback manual
+			// Fallback manual completo
 			window.appState.lastCoords = { lat: defaultCenter[0], lon: defaultCenter[1] };
+			window.appState.currentCity = 'Ciudad de México, México';
+			window.appState.currentState = 'Ciudad de México';
+			
 			fetchExtendedWeather(defaultCenter[0], defaultCenter[1], apiKey)
-				.then(updateWeatherUIFromData)
-				.catch(err => console.error('Error cargando clima fallback:', err));
+				.then(weatherData => {
+					updateWeatherUIFromData(weatherData);
+					
+					// Guardar datos climáticos completos
+					window.appState.currentWeatherData = weatherData;
+					console.log('🌤️ Datos climáticos completos guardados (fallback no-geo):', weatherData);
+					
+					// Obtener tipo de suelo
+					return getINEGISoilType(defaultCenter[0], defaultCenter[1]);
+				})
+				.then(soilData => {
+					if (soilData && soilData.soilType) {
+						window.appState.currentSoil = soilData.soilType;
+						console.log('🌱 Tipo de suelo guardado (fallback no-geo):', soilData.soilType);
+					}
+				})
+				.catch(err => console.error('Error cargando datos fallback:', err));
 		}
 	}
 }
