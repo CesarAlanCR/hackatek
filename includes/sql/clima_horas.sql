@@ -6,8 +6,17 @@ CREATE TABLE IF NOT EXISTS clima_horas (
   lon DECIMAL(9,6) NOT NULL,
   fecha_hora DATETIME NOT NULL,
   temperatura_c DECIMAL(5,2) NOT NULL,
+  relative_humidity_pct DECIMAL(5,2) NULL,
+  dew_point_c DECIMAL(5,2) NULL,
+  precipitation_mm DECIMAL(6,2) NULL,
+  cloud_cover_pct DECIMAL(5,2) NULL,
+  wind_speed_ms DECIMAL(5,2) NULL,
+  pressure_hpa DECIMAL(7,2) NULL,
+  radiation_wm2 DECIMAL(8,2) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_coord_fecha (lat, lon, fecha_hora)
+  UNIQUE KEY uniq_coord_fecha (lat, lon, fecha_hora),
+  KEY idx_coord (lat, lon),
+  KEY idx_fecha (fecha_hora)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabla de acumulado de horas frío por temporada

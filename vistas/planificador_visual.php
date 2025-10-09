@@ -4,25 +4,29 @@ require_once __DIR__ . '/../includes/planificador_manager.php';
 require_once __DIR__ . '/../includes/catalogo_manzanos.php';
 require_once __DIR__ . '/../includes/clima_persistencia.php';
 
+// Coordenadas por defecto (puedes cambiar a las del huerto/usuario)
+$default_lat = 28.4069;
+$default_lon = -106.8666;
+
 catalogo_inicializar();
 clima_inicializar_tablas();
 
 $mensaje = '';
 $resultado = null;
 $variedades = planificador_listar_variedades();
-$horas_frio_actual = null;
+ $horas_frio_actual = null;
 // Obtener la última horas_frio para contexto; si no existe intentar calcular período reciente (últimos 30 días)
 $db = conectar_bd();
 $q = $db->query('SELECT horas_frio, fecha_corte FROM horas_frio_acumuladas ORDER BY fecha_corte DESC LIMIT 1');
 if ($q && $row = $q->fetch_assoc()) { $horas_frio_actual = (int)$row['horas_frio']; }
 $db->close();
 if ($horas_frio_actual === null) {
-    // Fallback rápido: ingerir últimas 720 horas (~30 días) para lat/lon genérico Cuauhtémoc
-    $lat = 28.40; $lon = -106.86;
+    // Fallback rápido: ingerir últimas 720 horas (~30 días) usando la ingesta extendida y coordenadas por defecto
+    $lat = $default_lat; $lon = $default_lon;
     $hoy = date('Y-m-d');
     $inicio = date('Y-m-d', strtotime('-30 days'));
-    // Reusar ingestión y cálculo
-    $insertados = clima_ingestar_periodo($lat, $lon, $inicio, $hoy);
+    // Ingesta extendida (incluye forecast) y cálculo
+    $insertados = clima_ingestar_open_meteo_extendido($lat, $lon, 30, 16, 'America/Mexico_City');
     $calculadas = clima_calcular_acumulado($lat, $lon, $inicio.' 00:00:00', $hoy.' 23:59:59');
     // Guardar acumulado provisional con fecha corte hoy y temporada año actual
     $temporada = date('Y');
@@ -40,16 +44,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $v = planificador_obtener_variedad($variedad_id);
         if ($v) {
             if (($_POST['accion'] ?? '') === 'actualizar_clima') {
-                // Recalcular horas frío últimas 30 días
-                $lat = 28.40; $lon = -106.86;
+                // Recalcular horas frío usando ingesta extendida y coordenadas por defecto
+                $lat = $default_lat; $lon = $default_lon;
                 $inicio = date('Y-m-d', strtotime('-30 days'));
                 $fin = date('Y-m-d');
-                clima_ingestar_periodo($lat, $lon, $inicio, $fin);
+                clima_ingestar_open_meteo_extendido($lat, $lon, 30, 16, 'America/Mexico_City');
                 $horas_frio_actual = clima_calcular_acumulado($lat, $lon, $inicio.' 00:00:00', $fin.' 23:59:59');
                 clima_guardar_acumulado($lat, $lon, date('Y'), $horas_frio_actual, $fin);
-                $mensaje = 'Clima actualizado y horas frío recalculadas.';
+                $mensaje = 'Clima actualizado (extendido) y horas frío recalculadas.';
             }
             $resultado = planificador_calcular($v, $fecha_floracion, $horas_frio_actual);
+            // Calcular chill portions sobre datos reales usando coordenadas actuales
+            try {
+                $fechaFlorDt = new DateTime($fecha_floracion);
+                $anioFlor = (int)$fechaFlorDt->format('Y');
+                $temporadaDesde = ($anioFlor - 1) . '-07-01';
+                $chill_real = clima_calcular_chill_portions_heuristica($default_lat, $default_lon, $temporadaDesde, $fechaFlorDt->format('Y-m-d'));
+            } catch (Throwable $e) {
+                $chill_real = null;
+            }
         } else {
             $mensaje = 'Variedad no encontrada.';
         }
@@ -66,9 +79,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" href="../recursos/css/general.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body{font-family:Arial,sans-serif; margin:0; background:#f4f7f8; color:#1e2d2f;}
+body{font-family:Arial,sans-serif; margin:0; background:radial-gradient(circle at 28% 18%,#f0f9ff,#e3f2fd 55%,#e8f5e9 120%); color:#1e2d2f;}
 .container{max-width:1180px; margin:0 auto; padding:24px 28px;}
-h1{margin-top:4px; font-size:26px; letter-spacing:.5px;}
+/* Hero dinámico */
+.hero-dynamic{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:30px;padding:32px 38px 28px;background:linear-gradient(135deg,#ffffff 0%, #f1f7fb 52%, #f1f8f3 100%);border:1px solid rgba(0,0,0,0.05);border-radius:20px;box-shadow:0 6px 20px rgba(33,56,66,0.08);position:relative;overflow:hidden;}
+.hero-dynamic:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 74% 22%,rgba(25,118,210,.15),transparent 60%);pointer-events:none;}
+.hero-dynamic h1{margin:0 0 10px;font-size:clamp(1.6rem,3.4vw,2.5rem);letter-spacing:.6px;color:#0d3a52;}
+.hero-dynamic .intro{margin:0;max-width:640px;line-height:1.45;font-size:clamp(.95rem,1.15vw,1.05rem);color:#455a64;font-weight:500;}
+.badge-hero{display:inline-flex;align-items:center;gap:6px;background:#1976d2;color:#fff;padding:10px 16px;border-radius:40px;font-size:.75rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;box-shadow:0 4px 14px rgba(25,118,210,.3);}
+/* Progress ring */
+.ring-wrap{display:flex;align-items:center;gap:24px;justify-content:center;}
+.progress-ring{width:120px;height:120px;position:relative;}
+.progress-ring svg{transform:rotate(-90deg);}
+.progress-ring .pr-bg{stroke:#e0e7ea;stroke-width:10;fill:none;}
+.progress-ring .pr-val{stroke:url(#gradFrio);stroke-width:10;fill:none;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.25,1);}
+.progress-ring .center-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#0d3a52;letter-spacing:.5px;}
 .panel{border:1px solid #d4dadc; padding:20px 22px; border-radius:14px; margin-bottom:26px; background:#ffffff; box-shadow:0 2px 4px rgba(0,0,0,0.05);} 
 .panel h2{margin-top:0; font-size:20px;}
 label{display:block; margin-top:14px; font-weight:600; font-size:14px;}
@@ -76,10 +101,18 @@ select,input[type=date]{padding:9px 12px; width:300px; border:1px solid #b7c3c7;
 button, .btn{margin-top:18px; padding:10px 22px; background:#00695c; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; letter-spacing:.4px; text-decoration:none; display:inline-block;}
 button:hover,.btn:hover{background:#004d40;}
 .btn-secondary{background:#455a64;}
-.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
-.dato{background:#f0f5f6; padding:14px 14px 12px; border-radius:10px; position:relative;}
-.dato strong{font-size:15px;}
-.dato span{display:block; font-size:12px; color:#54666b; margin-top:2px;}
+/* Métricas estilo tarjetas */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:4px 0 4px;}
+.metric-card{position:relative;background:linear-gradient(180deg,#ffffff,#f3f8fa);border:1px solid rgba(25,118,210,0.10);border-radius:14px;padding:14px 16px 12px;box-shadow:0 4px 14px rgba(33,56,66,.08);overflow:hidden;isolation:isolate;transform:translateY(14px) scale(.96);opacity:0;transition:.55s cubic-bezier(.2,.8,.25,1);}
+.metric-card.active{transform:translateY(0) scale(1);opacity:1;box-shadow:0 10px 30px rgba(33,56,66,.18);}
+.metric-card h3{margin:0 0 6px;font-size:.82rem;letter-spacing:.5px;color:#0d3a52;font-weight:700;text-transform:uppercase;}
+.metric-card .value{font-size:1.15rem;font-weight:700;color:#103b60;}
+.metric-card small{display:block;margin-top:2px;font-size:.65rem;color:#546e7a;letter-spacing:.5px;}
+.metric-card.window{background:linear-gradient(135deg,#fff7e6,#ffeec8);border-color:#ffcc80;}
+.metric-card.shelf{background:linear-gradient(135deg,#e3f2fd,#ffffff);border-color:#90caf9;}
+.metric-card.cold-ok{background:linear-gradient(135deg,#e8f5e9,#ffffff);border-color:#a5d6a7;}
+.metric-card.cold-mid{background:linear-gradient(135deg,#fff9e1,#fff3cd);border-color:#ffe082;}
+.metric-card.cold-low{background:linear-gradient(135deg,#fde0e0,#ffffff);border-color:#ff8a80;}
 .alerta{background:#fff4e5; padding:10px 12px; border-left:4px solid #ff9800; margin:6px 0; border-radius:4px; font-size:13px;}
 .ok{background:#e6f8ed; padding:10px 12px; border-left:4px solid #2e7d32; margin:6px 0; border-radius:4px; font-size:13px;}
 .info{background:#e3f2fd; padding:10px 12px; border-left:4px solid #1976d2; margin:6px 0; border-radius:4px; font-size:13px;}
@@ -108,8 +141,13 @@ button:hover,.btn:hover{background:#004d40;}
 </head>
 <body>
 <main class="container">
-<h1>Planificador Visual de Cosecha</h1>
-<p style="max-width:880px;font-size:14px;margin-top:6px;">Ingresa la fecha de floración y selecciona la variedad para estimar cuándo conviene iniciar la cosecha y cuánto tiempo se conservará la fruta. Este panel simplifica conceptos técnicos para que cualquier persona pueda interpretar el avance y las recomendaciones.</p>
+<section class="hero-dynamic">
+    <div>
+        <span class="badge-hero">MANZANA</span>
+        <h1>Planificador Visual de Cosecha</h1>
+        <p class="intro">Selecciona variedad y fecha de floración para estimar ventana óptima, vida de anaquel y estado de horas frío. (Indicador de % éxito removido a solicitud).</p>
+    </div>
+</section>
 <div class="panel">
     <form method="POST">
         <label for="cultivo">Cultivo</label>
@@ -142,34 +180,34 @@ button:hover,.btn:hover{background:#004d40;}
 </div>
 <?php if($resultado): ?>
 <?php $rAgri = $resultado['resumen_agricultor'] ?? null; ?>
+<?php $chill_real_display = $chill_real ?? null; ?>
 <div class="panel" id="panelEsencial">
     <h2>Vista Esencial para el Agricultor</h2>
     <?php if($rAgri): ?>
-        <div style="display:flex;flex-wrap:wrap;gap:18px;">
-            <div style="flex:1 1 220px;min-width:220px;background:#f8fafb;border:1px solid #d1d9dc;border-radius:10px;padding:12px 14px;">
-                <h3 style="margin:0 0 8px;font-size:15px;">Variedad</h3>
-                <p style="margin:0;font-size:13px;"><strong><?= htmlspecialchars($rAgri['variedad']) ?></strong></p>
+        <div class="metrics-grid" id="metricsGrid">
+            <div class="metric-card" id="mcVariedad">
+                <h3>VARIEDAD</h3>
+                <div class="value"><?= htmlspecialchars($rAgri['variedad']) ?></div>
+                <small>Selección actual</small>
             </div>
-            <div style="flex:1 1 220px;min-width:220px;background:#f8fafb;border:1px solid #d1d9dc;border-radius:10px;padding:12px 14px;">
-                <h3 style="margin:0 0 8px;font-size:15px;">Floración</h3>
-                <p style="margin:0;font-size:13px;"><strong><?= htmlspecialchars($rAgri['floracion']) ?></strong></p>
+            <div class="metric-card" id="mcFloracion">
+                <h3>FLORACIÓN</h3>
+                <div class="value"><?= htmlspecialchars($rAgri['floracion']) ?></div>
+                <small>Fecha base ciclo</small>
             </div>
-            <div style="flex:1 1 240px;min-width:240px;background:#fff3e0;border:1px solid #ffcc80;border-radius:10px;padding:12px 14px;">
-                <h3 style="margin:0 0 8px;font-size:15px;">Ventana Cosecha</h3>
-                <p style="margin:0;font-size:13px;"><strong><?= htmlspecialchars($rAgri['ventana']['inicio']) ?> → <?= htmlspecialchars($rAgri['ventana']['fin']) ?></strong></p>
+            <div class="metric-card window" id="mcVentana">
+                <h3>VENTANA COSECHA</h3>
+                <div class="value" style="font-size:.95rem;"><?= htmlspecialchars($rAgri['ventana']['inicio']) ?> → <?= htmlspecialchars($rAgri['ventana']['fin']) ?></div>
+                <small>Inicio ↔ Fin recomendados</small>
             </div>
-            <div style="flex:1 1 220px;min-width:220px;background:#e1f5fe;border:1px solid #81d4fa;border-radius:10px;padding:12px 14px;">
-                <h3 style="margin:0 0 8px;font-size:15px;">Cosecha Estimada</h3>
-                <p style="margin:0;font-size:13px;"><strong><?= htmlspecialchars($rAgri['cosecha_estimada']) ?></strong></p>
+            <div class="metric-card shelf" id="mcCosecha">
+                <h3>COSECHA ESTIMADA</h3>
+                <div class="value"><?= htmlspecialchars($rAgri['cosecha_estimada']) ?></div>
+                <small>Fecha objetivo</small>
             </div>
-            <div style="flex:1 1 260px;min-width:240px;background:#f0f5f6;border:1px solid #d1d9dc;border-radius:10px;padding:12px 14px;">
-                <h3 style="margin:0 0 8px;font-size:15px;">Estado Frío</h3>
-                <?php $estado = $rAgri['estado_frio']; $clase=''; if($estado==='bajo'){ $clase='background:#ffe5e5;border:1px solid #ff8a80;'; } elseif($estado==='medio'){ $clase='background:#fff8e1;border:1px solid #ffe082;'; } elseif($estado==='estable'){ $clase='background:#e8f5e9;border:1px solid #a5d6a7;'; } else { $clase='background:#e3f2fd;border:1px solid #90caf9;'; } ?>
-                <div style="<?= $clase ?> padding:6px 10px;border-radius:8px;font-size:12.5px;margin:0 0 6px;">
-                    <strong><?= htmlspecialchars(strtoupper($estado)) ?></strong> — <?= htmlspecialchars($rAgri['mensaje_frio']) ?> (<?= htmlspecialchars((string)$rAgri['porcentaje_frio']) ?>%)
-                </div>
-                <p style="margin:0;font-size:12.5px;color:#455a64;">Horas frío: <?= htmlspecialchars((string)$rAgri['horas_frio']['acumuladas']) ?> / <?= htmlspecialchars((string)$rAgri['horas_frio']['requeridas']) ?> | Ajuste días: <?= htmlspecialchars((string)$rAgri['ajuste_dias']) ?></p>
-            </div>
+            
+            <?php $estado = $rAgri['estado_frio']; $estadoClase='cold-ok'; if($estado==='bajo'){ $estadoClase='cold-low'; } elseif($estado==='medio'){ $estadoClase='cold-mid'; } elseif($estado==='estable'){ $estadoClase='cold-ok'; } else { $estadoClase=''; } ?>
+            
         </div>
         <div style="margin-top:14px;font-size:13px;color:#37474f;">
             <strong>Recomendación principal:</strong> <?= htmlspecialchars($rAgri['recomendacion']) ?><br/>
@@ -177,7 +215,7 @@ button:hover,.btn:hover{background:#004d40;}
                 <strong>Alerta destacada:</strong> <?= htmlspecialchars($rAgri['alerta_clave']) ?>
             <?php endif; ?>
         </div>
-        <button type="button" onclick="document.getElementById('bloqueCompleto').style.display='block'; this.style.display='none';" style="margin-top:16px;background:#1976d2;">Ver detalles avanzados</button>
+    <button type="button" id="toggleDetallado" style="margin-top:16px;background:#1976d2;">Ver detalles avanzados</button>
         <p style="font-size:12px;color:#54666b;margin-top:6px;">Esta vista muestra sólo lo que necesitas para decidir logística y monitoreo diario.</p>
     <?php else: ?>
         <p>No se construyó el resumen esencial.</p>
@@ -198,7 +236,7 @@ button:hover,.btn:hover{background:#004d40;}
         <div class="dato"><strong><?= htmlspecialchars((string)$resultado['ajuste_aplicado_dias']) ?></strong><span>Ajuste por frío</span></div>
         <div class="dato"><strong><?= htmlspecialchars((string)$resultado['horas_frio_acumuladas']) ?></strong><span>Horas Frío Acum.</span></div>
         <div class="dato"><strong><?= htmlspecialchars((string)$resultado['horas_frio_requeridas']) ?></strong><span>Horas Frío Req.</span></div>
-        <div class="dato"><strong><?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%</strong><span>Avance frío</span></div>
+    <div class="dato"><strong><?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%</strong><span>Avance frío</span></div>
     </div>
     <?php
         // Interpretación amigable
@@ -220,6 +258,9 @@ button:hover,.btn:hover{background:#004d40;}
 <div class="panel">
     <h2>Desglose Detallado</h2>
     <p style="font-size:13px;color:#455a64;">Cada métrica incluye una explicación corta y otra amplia para reforzar comprensión incluso sin experiencia técnica o agrícola.</p>
+        <p style="font-size:12px;color:#37474f;background:#f1f8ff;border:1px solid #cfd8dc;padding:10px 12px;border-radius:10px;line-height:1.35;">
+            <strong>Metodología Prob. Éxito (versión heurística 0.2):</strong> Partimos del % de horas frío cumplidas comparado con lo requerido, aplicamos penalización por días de ajuste (déficit térmico) y añadimos bonificación incremental si el cumplimiento es alto (≥95% sin ajuste). Ahora se incorpora un factor adicional de <em>chill portions</em> estimadas (heurística): rangos mayores de porciones aportan bonificación (ej. ≥40 → +4 pts). Futuras versiones integrarán: riesgo de heladas severas, anomalías de radiación, estrés hídrico y validación fenológica visual. <strong>Nota:</strong> Esta probabilidad no garantiza rendimiento, sino la consistencia temporal y de calidad prevista bajo supuestos estándar de manejo.
+        </p>
     <?php if(isset($resultado['detalles']) && is_array($resultado['detalles'])): ?>
         <?php foreach($resultado['detalles'] as $clave => $info): ?>
             <div style="margin-bottom:18px;padding:14px 16px;border:1px solid #d0d7da;border-radius:10px;background:#fcfdfd;">
@@ -240,6 +281,12 @@ button:hover,.btn:hover{background:#004d40;}
         <?php endforeach; ?>
     <?php else: ?>
         <p>No hay detalles disponibles.</p>
+    <?php endif; ?>
+    <?php if(isset($resultado['debug_calc'])): $dbg = $resultado['debug_calc']; ?>
+        <div style="margin-top:12px;padding:12px;border:1px dashed #b0bec5;border-radius:8px;background:#fff;">
+            <h4>Depuración cálculo probabilidad</h4>
+            <pre style="font-size:13px;color:#263238;white-space:pre-wrap;"><?= htmlspecialchars(json_encode($dbg, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)) ?></pre>
+        </div>
     <?php endif; ?>
     <p style="font-size:12px;color:#607d8b;margin-top:10px;">Fin del desglose. Puedes volver arriba para cambiar variedad o fecha y recalcular el conjunto completo de métricas y sus explicaciones repetitivas.</p>
 </div>
@@ -295,10 +342,22 @@ button:hover,.btn:hover{background:#004d40;}
     <div id="heladaEventos"></div>
 </div>
 </div><!-- cierre bloqueCompleto -->
+<div class="panel">
+    <h2>Predicción climática (próximos días)</h2>
+    <div id="prediccionBox">
+        <p style="font-size:13px;color:#37474f;">Se muestran Tmin/Tmax diarias y una estimación simple de horas frío esperadas (0–7°C) basada en la predicción almacenada.</p>
+        <table style="width:100%;border-collapse:collapse;margin-top:10px;">
+            <thead>
+                <tr style="text-align:left;border-bottom:1px solid #e0e0e0;"><th>Día</th><th>Tmin</th><th>Tmax</th><th>Horas frío prev.</th><th>Horas ≤1°C (48h)</th></tr>
+            </thead>
+            <tbody id="predRows"></tbody>
+        </table>
+    </div>
+</div>
 <script>
 (function(){
     // Datos PHP -> JS
-    const porcentajeFrio = <?= json_encode($resultado['porcentaje_frio'] ?? 0) ?>;
+    const porcentajeFrio = <?= json_encode($resultado['porcentaje_frio'] ?? 0) ?>; // usado en barra de horas frío
     const horasReq = <?= json_encode($resultado['horas_frio_requeridas'] ?? 0) ?>;
     const horasAcum = <?= json_encode($resultado['horas_frio_acumuladas'] ?? 0) ?>;
     const vidaAnaquel = <?= json_encode($resultado['vida_anaquel_dias']) ?>;
@@ -306,14 +365,33 @@ button:hover,.btn:hover{background:#004d40;}
     const fechaEstimada = <?= json_encode($resultado['fecha_cosecha_estimada']) ?>;
     const variedadId = <?= json_encode($resultado['variedad_id']) ?>;
 
-    // Barra progreso frío
+    // Barra progreso frío básica (mantener panel simplificado)
     const barFrio = document.getElementById('barFrio');
     const labelFrio = document.getElementById('labelFrio');
-    const porcVal = Math.min(100, Math.max(0, porcentajeFrio));
-    barFrio.style.width = porcVal + '%';
-    labelFrio.textContent = porcVal.toFixed(1) + '%';
-    if (porcVal < 80) { barFrio.style.background = 'linear-gradient(90deg,#c62828,#ef5350)'; }
-    else if (porcVal < 90) { barFrio.style.background = 'linear-gradient(90deg,#f9a825,#fff176)'; }
+    if(barFrio && labelFrio){
+        const porcVal = Math.min(100, Math.max(0, porcentajeFrio));
+        barFrio.style.width = porcVal + '%';
+        labelFrio.textContent = porcVal.toFixed(1) + '%';
+        if (porcVal < 80) { barFrio.style.background = 'linear-gradient(90deg,#c62828,#ef5350)'; }
+        else if (porcVal < 90) { barFrio.style.background = 'linear-gradient(90deg,#f9a825,#fff176)'; }
+    }
+    // Indicador de prob_exito removido: se elimina lógica de ring
+    // Animar tarjetas métricas
+    const metricCards = document.querySelectorAll('.metric-card');
+    let delay=0; metricCards.forEach(mc=>{ setTimeout(()=> mc.classList.add('active'), delay); delay+=140; });
+    // Toggle avanzado y animar timeline
+    const btnToggle = document.getElementById('toggleDetallado');
+    const bloque = document.getElementById('bloqueCompleto');
+    if(btnToggle && bloque){
+        btnToggle.addEventListener('click',()=>{
+            const visible = bloque.style.display==='block';
+            bloque.style.display = visible? 'none':'block';
+            btnToggle.textContent = visible? 'Ver detalles avanzados':'Ocultar detalles avanzados';
+            if(!visible){
+                document.querySelectorAll('.t-step').forEach((st,i)=>{setTimeout(()=>st.classList.add('active'), i*160);});
+            }
+        });
+    }
 
     // Barra vida anaquel proporcional max 60 días para escala visual (asunción simple)
     const barAnaquel = document.getElementById('barAnaquel');
@@ -347,6 +425,35 @@ button:hover,.btn:hover{background:#004d40;}
             resumenDiv.innerHTML = '<p>Error consultando SAGRO-IA.</p>';
             console.error(err);
         });
+
+    // Predicción climática real: consumir endpoint prediccion_clima.php (agregados diarios)
+    (function cargarPrediccion(){
+        // Podemos ajustar parámetros (dias futuro/pasado) según necesidad del planificador.
+        // Aquí: mostrar 5 días futuros sin pasado.
+        fetch('../prediccion_clima.php?dias=5&pasado=0')
+            .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
+            .then(data => {
+                if(!data || !Array.isArray(data.dias)) {
+                    console.warn('Respuesta inesperada de prediccion_clima.php', data);
+                    return;
+                }
+                const tbody = document.getElementById('predRows');
+                if(!tbody) { console.error('Tabla de predicción no encontrada (#predRows)'); return; }
+                if(!data.dias.length){
+                    tbody.innerHTML = '<tr><td colspan="5">Sin datos climáticos disponibles para el rango solicitado.</td></tr>';
+                    return;
+                }
+                // Construir filas reales: dia, Tmin, Tmax, Horas frío, Horas ≤1°C
+                const filasHtml = data.dias.map(d => {
+                    const tmin = d.tmin !== null && d.tmin !== undefined ? d.tmin+'°C' : '—';
+                    const tmax = d.tmax !== null && d.tmax !== undefined ? d.tmax+'°C' : '—';
+                    
+                    return `<tr><td>${d.dia}</td><td>${tmin}</td><td>${tmax}</td><td>`;
+                }).join('');
+                tbody.innerHTML = filasHtml;
+            })
+            .catch(err => { console.error('Predicción climática falló', err); const tbody = document.getElementById('predRows'); if(tbody){tbody.innerHTML = '<tr><td colspan="5">Error cargando predicción.</td></tr>';}});
+    })();
 })();
 </script>
 <?php endif; ?>

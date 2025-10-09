@@ -4,6 +4,7 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/conexion.php';
+require_once __DIR__ . '/clima_persistencia.php';
 
 function planificador_obtener_variedad(int $id): ?array {
     $db = conectar_bd();
@@ -33,22 +34,71 @@ function planificador_calcular(array $variedad, string $fecha_floracion, ?int $h
         }
     }
 
+    // Si no se proporcionó acumulado, intentar calcular desde inicio de temporada usando datos en DB
+    if ($horas_frio_acumuladas === null) {
+        try {
+            $anioFlorTmp = (int)(new DateTime($fecha_floracion))->format('Y');
+            $temporadaInicioTmp = ($anioFlorTmp - 1) . '-07-01 00:00:00';
+            $hoyTmp = date('Y-m-d') . ' 23:59:59';
+            // coordenadas por defecto
+            $horas_frio_acumuladas = clima_calcular_acumulado(28.4069, -106.8666, $temporadaInicioTmp, $hoyTmp);
+        } catch (Throwable $e) {
+            $horas_frio_acumuladas = null;
+        }
+    }
+
     $porcentaje_frio = null;
     if ($horas_frio_acumuladas !== null && $horas_frio_requeridas) {
         $porcentaje_frio = $horas_frio_requeridas > 0 ? round(($horas_frio_acumuladas / $horas_frio_requeridas)*100,1) : null;
     }
-
     // Ajuste simple si horas frío muy por debajo (<80%): retrasar cosecha
     $ajuste_dias = 0;
     if ($porcentaje_frio !== null) {
         if ($porcentaje_frio < 80) { $ajuste_dias = 3; }
         elseif ($porcentaje_frio < 90) { $ajuste_dias = 1; }
     }
+    // (Removido) Probabilidad de éxito de cosecha
+    $prob_exito_cosecha = null; // mantenido nulo para compatibilidad temporal
+    $chill_portions_estimadas = null;
+    $debug_calc = [
+        'porcentaje_frio' => $porcentaje_frio,
+        'horas_frio_acumuladas' => $horas_frio_acumuladas,
+        'horas_frio_requeridas' => $horas_frio_requeridas,
+        'ajuste_dias' => $ajuste_dias,
+        'chill_portions_estimadas' => null,
+        // Campos de prob_exito removidos
+    ];
+
+    // Cálculo de prob_exito removido
+
 
     $fechaCosecha = (clone $fechaFlor)->add(new DateInterval('P' . ($dias + $ajuste_dias) . 'D'));
     $ventanaInicio = (clone $fechaCosecha)->sub(new DateInterval('P5D'));
     $ventanaFin = (clone $fechaCosecha)->add(new DateInterval('P5D'));
     $fechaLimiteAnaquel = (clone $fechaCosecha)->add(new DateInterval('P' . $vida . 'D'));
+
+    // Proyección: contamos horas frío desde ahora hasta fecha estimada de cosecha usando datos forecast ya insertados
+    try {
+        $db = conectar_bd();
+        $ahora = (new DateTime())->format('Y-m-d H:00:00');
+        $hastaProy = $fechaCosecha->format('Y-m-d 23:59:59');
+        $stmtP = $db->prepare('SELECT COUNT(*) AS c FROM clima_horas WHERE lat = ? AND lon = ? AND fecha_hora BETWEEN ? AND ? AND temperatura_c > 0 AND temperatura_c <= 7');
+        $latP = 28.4069; $lonP = -106.8666; // coordenadas por defecto; ideal usar huerto real
+        $stmtP->bind_param('ddss', $latP, $lonP, $ahora, $hastaProy);
+        $stmtP->execute();
+        $resP = $stmtP->get_result()->fetch_assoc();
+        $proyectadas_horas = (int)($resP['c'] ?? 0);
+        $stmtP->close();
+        $db->close();
+        if ($horas_frio_requeridas && $horas_frio_requeridas > 0) {
+            $porcentaje_proyectado = round((($horas_frio_acumuladas ?? 0) + $proyectadas_horas) / $horas_frio_requeridas * 100, 1);
+        } else { $porcentaje_proyectado = null; }
+        $debug_calc['proyectadas_horas'] = $proyectadas_horas;
+        // Se ignora ajuste de base por porcentaje proyectado (prob_exito eliminado)
+    } catch (Throwable $e) {
+        $debug_calc['proyectadas_horas'] = null;
+        $debug_calc['porcentaje_proyectado'] = null;
+    }
 
     $alertas = [];
     if ($vida < 25) {
@@ -150,9 +200,12 @@ function planificador_calcular(array $variedad, string $fecha_floracion, ?int $h
         'fecha_limite_anaquel' => $fechaLimiteAnaquel->format('Y-m-d'),
         'horas_frio_requeridas' => $horas_frio_requeridas,
         'horas_frio_acumuladas' => $horas_frio_acumuladas,
-        'porcentaje_frio' => $porcentaje_frio,
+    'porcentaje_frio' => $porcentaje_frio,
+    // 'prob_exito_cosecha' removido del retorno
         'alertas' => $alertas,
-        'detalles' => $detalles,
+    'detalles' => $detalles,
+    'chill_portions_estimadas' => $chill_portions_estimadas,
+    'debug_calc' => $debug_calc,
         // Simulación de acumulación granular de horas frío (para vista uniforme)
         'acumulacion' => (function() use ($horas_frio_acumuladas, $horas_frio_requeridas, $fechaFlor){
             $total = $horas_frio_acumuladas ?? 0;
@@ -189,7 +242,7 @@ function planificador_calcular(array $variedad, string $fecha_floracion, ?int $h
             ];
         })(),
         // Resumen compacto para el agricultor (solo lo esencial)
-        'resumen_agricultor' => (function() use ($variedad, $fechaFlor, $ventanaInicio, $ventanaFin, $fechaCosecha, $porcentaje_frio, $ajuste_dias, $horas_frio_acumuladas, $horas_frio_requeridas, $alertas){
+    'resumen_agricultor' => (function() use ($variedad, $fechaFlor, $ventanaInicio, $ventanaFin, $fechaCosecha, $porcentaje_frio, $ajuste_dias, $horas_frio_acumuladas, $horas_frio_requeridas, $alertas){
             // Clasificación simple del estado del frío
             $estadoFrio = 'estable';
             $mensajeFrio = 'Frío suficiente para seguir con programación.';
@@ -212,6 +265,7 @@ function planificador_calcular(array $variedad, string $fecha_floracion, ?int $h
                 'cosecha_estimada' => $fechaCosecha->format('Y-m-d'),
                 'estado_frio' => $estadoFrio,
                 'porcentaje_frio' => $porcentaje_frio,
+                // 'prob_exito_cosecha' removido
                 'mensaje_frio' => $mensajeFrio,
                 'ajuste_dias' => $ajuste_dias,
                 'horas_frio' => [ 'acumuladas' => $horas_frio_acumuladas, 'requeridas' => $horas_frio_requeridas ],
