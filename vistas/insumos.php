@@ -21,8 +21,10 @@ function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
     /* Page header similar to chat/agua pages */
   .page-header{padding:18px 20px;border-bottom:1px solid var(--border);background:rgba(30,41,54,0.6);backdrop-filter:blur(8px);display:flex;align-items:center;gap:12px;margin-bottom:0;border-radius:12px 12px 0 0}
   .page-header h2{margin:0;color:var(--accent);font-size:1.2rem;font-weight:700;text-align:center;flex:1;transform:translateX(-62px);pointer-events:none}
-  .btn-back{background:rgba(124, 179, 66, 0.12);border:1px solid var(--border);color:var(--accent);padding:8px 14px;border-radius:10px;font-weight:600;text-decoration:none;position:relative;z-index:3;transition:var(--transition-fast)}
+  .btn-back{background:rgba(124, 179, 66, 0.12);border:1px solid var(--border);color:var(--accent);padding:8px 14px;border-radius:10px;font-weight:600;text-decoration:none;position:relative;z-index:3;transition:var(--transition-fast);box-shadow:none;text-shadow:none}
   .btn-back:hover{background:var(--accent);color:#fff;transform:translateX(-4px)}
+  /* remove any pseudo-element overlay that creates a white sheen */
+  .btn-back::before, .btn-back::after{display:none !important;content:none !important}
 
   /* container that groups header + card to match chat/agua layouts */
   .page-card{background:var(--bg-card);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid var(--border);}
