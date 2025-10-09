@@ -203,8 +203,15 @@ document.addEventListener('DOMContentLoaded', function(){
 				window.appState.lastCoords = { lat, lon };
 				
 				try {
-					modalBody.innerHTML = '<p>Consultando tipo de suelo...</p>';
-					const soil = await getINEGISoilType(lat, lon);
+					modalBody.innerHTML = '<p>Consultando información de clima y suelo...</p>';
+					
+					// Obtener datos de suelo y clima en paralelo
+					const [soil, weather] = await Promise.all([
+						getINEGISoilType(lat, lon),
+						fetchExtendedWeather(lat, lon, OWM_API_KEY)
+					]);
+					
+					// Información de suelo
 					const tipoSuelo = soil?.soilType || 'Desconocido';
 					const codigo = soil?.soilCode ? ` (${soil.soilCode})` : '';
 					const desc = soil?.description || 'Sin descripción disponible';
@@ -218,21 +225,77 @@ document.addEventListener('DOMContentLoaded', function(){
 					else if (lat > 18 && lat < 22 && lon > -104 && lon < -96) region = 'Eje Neovolcánico';
 					else if (lat < 20) region = 'Sur tropical';
 					
+					// Información de clima
+					const condition = weather.weather?.[0]?.description || 'N/D';
+					const currentTemp = weather.main?.temp != null ? Math.round(weather.main.temp) : 'N/D';
+					const humidity = weather.main?.humidity != null ? weather.main.humidity : 'N/D';
+					const pressure = weather.main?.pressure != null ? weather.main.pressure : 'N/D';
+					const visibility = weather.visibility != null ? (weather.visibility / 1000).toFixed(1) : 'N/D';
+					const currentWind = weather.wind?.speed != null ? (weather.wind.speed * 3.6).toFixed(1) : 'N/D';
+					const windDir = weather.wind?.deg != null ? weather.wind.deg : null;
+					
+					// Datos extendidos (si están disponibles)
+					const tempMax = weather.extended?.tempMax != null ? Math.round(weather.extended.tempMax) : currentTemp;
+					const tempMin = weather.extended?.tempMin != null ? Math.round(weather.extended.tempMin) : currentTemp;
+					const precipitation = weather.extended?.precipitation || 0;
+					const maxWind = weather.extended?.maxWindSpeed != null ? (weather.extended.maxWindSpeed * 3.6).toFixed(1) : currentWind;
+					const rainProb = weather.extended?.rainProbability != null ? Math.round(weather.extended.rainProbability) : 0;
+					
+					// Dirección del viento
+					const getWindDirection = (deg) => {
+						if (!deg) return '';
+						const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+						const index = Math.round(deg / 22.5) % 16;
+						return directions[index];
+					};
+					
+					const windDirection = windDir ? ` (${getWindDirection(windDir)})` : '';
+					
 					modalBody.innerHTML = `
-						<div>
-							<p><strong>Ubicación:</strong> ${lat.toFixed(5)}, ${lon.toFixed(5)}</p>
-							<p><strong>Región:</strong> ${region}</p>
-							<p><strong>Tipo de suelo:</strong> ${tipoSuelo}${codigo}</p>
-							<div class="soil-explain" style="margin-top:10px;padding:10px;border-radius:8px;background:#e8f5e9;border:1px solid #4CAF50;color:#333;">
-								<p style="margin:0 0 6px 0;"><strong>Características:</strong></p>
-								<p style="margin:0;">${desc}</p>
+						<div style="max-height: 70vh; overflow-y: auto;">
+							<!-- Información de Ubicación -->
+							<div class="section-divider location-section">
+								<h4 class="section-title location-title">📍 Ubicación</h4>
+								<div class="detail-item"><strong>Coordenadas:</strong> ${lat.toFixed(5)}, ${lon.toFixed(5)}</div>
+								<div class="detail-item"><strong>Región:</strong> ${region}</div>
 							</div>
-							<p style="margin-top:8px;font-size:0.9em;color:#666;">Fuente: Estimación climática (INEGI)</p>
+							
+							<!-- Información de Clima -->
+							<div class="section-divider climate-section">
+								<h4 class="section-title climate-title">🌤️ Condiciones Climáticas</h4>
+								<div class="detail-grid">
+									<div class="detail-item"><strong>Condición:</strong> ${condition}</div>
+									<div class="detail-item"><strong>Temperatura:</strong> ${currentTemp}°C</div>
+									<div class="detail-item"><strong>Temp. máxima:</strong> ${tempMax}°C</div>
+									<div class="detail-item"><strong>Temp. mínima:</strong> ${tempMin}°C</div>
+									<div class="detail-item"><strong>Humedad:</strong> ${humidity}%</div>
+									<div class="detail-item"><strong>Presión:</strong> ${pressure} hPa</div>
+									<div class="detail-item"><strong>Precipitación total:</strong> ${precipitation.toFixed(1)} mm</div>
+									<div class="detail-item"><strong>Prob. de lluvia:</strong> ${rainProb}%</div>
+									<div class="detail-item"><strong>Viento actual:</strong> ${currentWind} km/h${windDirection}</div>
+									<div class="detail-item"><strong>Viento máximo:</strong> ${maxWind} km/h</div>
+									<div class="detail-item"><strong>Visibilidad:</strong> ${visibility} km</div>
+								</div>
+							</div>
+							
+							<!-- Información de Suelo -->
+							<div class="section-divider soil-section">
+								<h4 class="section-title soil-title">🌱 Tipo de Suelo</h4>
+								<div class="detail-item"><strong>Clasificación:</strong> ${tipoSuelo}${codigo}</div>
+								<div style="margin-top:12px;padding:12px;border-radius:8px;background:rgba(255, 152, 0, 0.1);border:1px solid rgba(255, 152, 0, 0.3);color:var(--text-primary);">
+									<div style="margin:0 0 6px 0;font-weight:600;">Características:</div>
+									<div style="margin:0;line-height:1.5;">${desc}</div>
+								</div>
+							</div>
+							
+							<div style="margin-top:20px;font-size:0.85rem;color:var(--text-muted);text-align:center;padding:10px;border-top:1px solid var(--border);">
+								Fuentes: OpenWeatherMap • INEGI México
+							</div>
 						</div>
 					`;
 				} catch (e) {
-					console.error('Error obteniendo tipo de suelo:', e);
-					modalBody.innerHTML = `<p>Error obteniendo tipo de suelo: ${e.message}</p>`;
+					console.error('Error obteniendo información:', e);
+					modalBody.innerHTML = `<p>Error obteniendo información: ${e.message}</p>`;
 				}
 			}, (err) => {
 				console.error('Error de geolocalización:', err);
@@ -389,6 +452,69 @@ function fetchWeather(lat, lon, apiKey) {
 		console.error('❌ Error en fetchWeather:', err);
 		throw err;
 	});
+}
+
+// Consulta datos extendidos de clima (incluye pronóstico para temp máx/mín)
+async function fetchExtendedWeather(lat, lon, apiKey) {
+	try {
+		// Obtener clima actual
+		const currentWeather = await fetchWeather(lat, lon, apiKey);
+		
+		// Obtener pronóstico para temp máx/mín de hoy
+		const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=es&appid=${apiKey}`;
+		const forecastResponse = await fetch(forecastUrl);
+		
+		if (!forecastResponse.ok) {
+			console.warn('No se pudo obtener pronóstico, usando solo datos actuales');
+			return currentWeather;
+		}
+		
+		const forecastData = await forecastResponse.json();
+		
+		// Extraer datos del día actual del pronóstico
+		const today = new Date().toDateString();
+		const todayForecasts = forecastData.list.filter(item => {
+			const itemDate = new Date(item.dt * 1000).toDateString();
+			return itemDate === today;
+		});
+		
+		// Calcular temp máx/mín del día
+		let tempMax = currentWeather.main.temp;
+		let tempMin = currentWeather.main.temp;
+		let totalPrecip = 0;
+		let maxWindSpeed = currentWeather.wind?.speed || 0;
+		let rainProb = 0;
+		
+		todayForecasts.forEach(forecast => {
+			tempMax = Math.max(tempMax, forecast.main.temp_max);
+			tempMin = Math.min(tempMin, forecast.main.temp_min);
+			if (forecast.rain?.['3h']) {
+				totalPrecip += forecast.rain['3h'];
+			}
+			if (forecast.wind?.speed) {
+				maxWindSpeed = Math.max(maxWindSpeed, forecast.wind.speed);
+			}
+			if (forecast.pop) {
+				rainProb = Math.max(rainProb, forecast.pop * 100);
+			}
+		});
+		
+		// Combinar datos actuales con datos extendidos
+		return {
+			...currentWeather,
+			extended: {
+				tempMax,
+				tempMin,
+				precipitation: totalPrecip,
+				maxWindSpeed,
+				rainProbability: rainProb
+			}
+		};
+	} catch (err) {
+		console.error('❌ Error obteniendo clima extendido:', err);
+		// Fallback a datos básicos
+		return fetchWeather(lat, lon, apiKey);
+	}
 }
 
 // Actualiza UI del clima
