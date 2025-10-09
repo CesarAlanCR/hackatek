@@ -56,11 +56,7 @@
 				<a href="planificador_visual.php" class="btn btn-primary" aria-label="Abrir Planificador virtual">Abrir</a>
 			</article>
 
-			<article id="modulo-mercado" class="card module-card" data-module="Mercado" tabindex="0">
-				<h3>Mercado</h3>
-				<p>Precios, tendencias y canales de venta.</p>
-				<button class="btn btn-primary">Abrir</button>
-			</article>
+			
 
 			<article id="modulo-chat-ia" class="card module-card" data-module="Chat IA" tabindex="0">
 				<h3>Chat IA</h3>
@@ -72,6 +68,12 @@
 				<h3>Cuerpos de agua</h3>
 				<p>Visualiza los cuerpos de agua en mexico</p>
 				<a href="agua.php" class="btn btn-primary" aria-label="Abrir Cuerpos de agua">Abrir</a>
+			</article>
+
+			<article id="modulo-mercado" class="card module-card" data-module="Mercado" tabindex="0">
+				<h3>Insumos</h3>
+				<p>calcula el aproximado para tu fertilizante</p>
+				<a href="insumos.php" class="btn btn-primary" aria-label="Abrir Insumos">Abrir</a>
 			</article>
 		</section>
 
