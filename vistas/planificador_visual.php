@@ -479,22 +479,6 @@ small{color:var(--text-muted);}
     font-weight: 600;
 }
 
-/* Nota específica para árboles */
-.tree-notice {
-    background: rgba(255, 152, 0, 0.1);
-    border: 1px solid rgba(255, 152, 0, 0.3);
-    border-radius: var(--radius);
-    padding: 12px;
-    margin: 12px 0;
-    font-size: 12px;
-    color: #FF6F00;
-    line-height: 1.4;
-}
-
-.tree-notice strong {
-    color: #E65100;
-}
-
 /* Estilos para la línea de tiempo del ciclo de cultivo */
 .cycle-timeline {
     margin-top: 16px;
@@ -545,9 +529,44 @@ small{color:var(--text-muted);}
     background: linear-gradient(135deg, #2196F3, #03A9F4);
 }
 
+/* Nuevos estilos para líneas de tiempo de árboles */
+.seed-step {
+    border-color: #8D6E63;
+    background: linear-gradient(135deg, #8D6E63, #A1887F);
+}
+
+.sprout-step {
+    border-color: #4CAF50;
+    background: linear-gradient(135deg, #4CAF50, #8BC34A);
+}
+
+.mature-step {
+    border-color: #2E7D32;
+    background: linear-gradient(135deg, #2E7D32, #4CAF50);
+}
+
 .step-icon {
     font-size: 20px;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+/* Estilos para secciones de línea de tiempo */
+.timeline-section {
+    margin-bottom: 24px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    border-left: 4px solid var(--accent);
+}
+
+.timeline-title {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .step-content {
@@ -784,9 +803,16 @@ const cultivosData = {
 // Función para detectar si un cultivo es un árbol
 function esArbol(nombreCultivo) {
     const arboles = [
-        'nuez', 'mango', 'datil', 'aceituna', 'cacao', 'manzana', 
-        'durazno', 'uva', 'naranja', 'limon', 'cafe', 'palma de aceite',
-        'nuez pecanera', 'aguacate', 'papaya'
+        // Árboles frutales
+        'nuez', 'nuez pecanera', 'mango', 'aceituna', 'cacao', 'manzana', 
+        'durazno', 'naranja', 'limon', 'cafe', 'aguacate', 'guayaba', 'tamarindo',
+        
+        // Palmas (técnicamente no son árboles pero se comportan como tal)
+        'palma de aceite', 'coco', 'datil',
+        
+        // Nota: La uva es una vid leñosa pero se considera más como arbusto trepador
+        // El plátano es técnicamente una hierba gigante, no un árbol
+        // El café es un arbusto pero puede crecer como árbol pequeño
     ];
     
     return arboles.some(arbol => 
@@ -827,48 +853,131 @@ function mostrarModal(producto) {
         
         <div class="detail-item">
             <h4>⏱️ Ciclo de Cultivo</h4>
-            ${esArbol(data.nombre) ? 
-                `<p class="tree-notice">⚠️ <strong>Nota:</strong> Para árboles frutales, estos tiempos aplican cuando el árbol ya está adulto y dando fruto constante.</p>` : 
-                ''
-            }
             
-            <div class="cycle-timeline">
-                <div class="timeline-container">
-                    <div class="timeline-step">
-                        <div class="step-marker germination-step">
-                            <span class="step-icon">🌱</span>
-                        </div>
-                        <div class="step-content">
-                            <h6>${esArbol(data.nombre) ? 'Desarrollo del fruto' : 'Germinación'}</h6>
-                            <p>0 - ${data.ciclo.diasGerminacion} días</p>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-connector"></div>
-                    
-                    <div class="timeline-step">
-                        <div class="step-marker harvest-step">
-                            <span class="step-icon">🌾</span>
-                        </div>
-                        <div class="step-content">
-                            <h6>Cosecha</h6>
-                            <p>Día ${data.ciclo.diasGerminacion}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-connector"></div>
-                    
-                    <div class="timeline-step">
-                        <div class="step-marker preservation-step">
-                            <span class="step-icon">⏰</span>
-                        </div>
-                        <div class="step-content">
-                            <h6>Caducidad</h6>
-                            <p>${data.ciclo.diasCaducidad} días</p>
+            ${esArbol(data.nombre) ? `
+                <!-- Primera línea de tiempo: Desde semilla hasta primer fruto -->
+                <div class="timeline-section">
+                    <h5 class="timeline-title">🌳 Establecimiento del Árbol (Desde semilla hasta primer fruto)</h5>
+                    <div class="cycle-timeline">
+                        <div class="timeline-container">
+                            <div class="timeline-step">
+                                <div class="step-marker seed-step">
+                                    <span class="step-icon">🌰</span>
+                                </div>
+                                <div class="step-content">
+                                    <h6>Siembra</h6>
+                                    <p>Día 0</p>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-connector"></div>
+                            
+                            <div class="timeline-step">
+                                <div class="step-marker sprout-step">
+                                    <span class="step-icon">🌱</span>
+                                </div>
+                                <div class="step-content">
+                                    <h6>Germinación</h6>
+                                    <p>30-90 días</p>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-connector"></div>
+                            
+                            <div class="timeline-step">
+                                <div class="step-marker mature-step">
+                                    <span class="step-icon">🌳</span>
+                                </div>
+                                <div class="step-content">
+                                    <h6>Primer Fruto</h6>
+                                    <p>2-5 años</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+                
+                <!-- Segunda línea de tiempo: Ciclo de producción del árbol adulto -->
+                <div class="timeline-section">
+                    <h5 class="timeline-title">🍎 Ciclo de Producción (Árbol adulto establecido)</h5>
+                    <div class="cycle-timeline">
+                        <div class="timeline-container">
+                            <div class="timeline-step">
+                                <div class="step-marker germination-step">
+                                    <span class="step-icon">🌸</span>
+                                </div>
+                                <div class="step-content">
+                                    <h6>Floración</h6>
+                                    <p>0 - ${Math.floor(data.ciclo.diasGerminacion * 0.3)} días</p>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-connector"></div>
+                            
+                            <div class="timeline-step">
+                                <div class="step-marker harvest-step">
+                                    <span class="step-icon">🌾</span>
+                                </div>
+                                <div class="step-content">
+                                    <h6>Cosecha</h6>
+                                    <p>Día ${data.ciclo.diasGerminacion}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-connector"></div>
+                            
+                            <div class="timeline-step">
+                                <div class="step-marker preservation-step">
+                                    <span class="step-icon">⏰</span>
+                                </div>
+                                <div class="step-content">
+                                    <h6>Conservación</h6>
+                                    <p>${data.ciclo.diasCaducidad} días</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ` : `
+                <!-- Línea de tiempo normal para cultivos no arbóreos -->
+                <div class="cycle-timeline">
+                    <div class="timeline-container">
+                        <div class="timeline-step">
+                            <div class="step-marker germination-step">
+                                <span class="step-icon">🌱</span>
+                            </div>
+                            <div class="step-content">
+                                <h6>Germinación</h6>
+                                <p>0 - ${data.ciclo.diasGerminacion} días</p>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-connector"></div>
+                        
+                        <div class="timeline-step">
+                            <div class="step-marker harvest-step">
+                                <span class="step-icon">🌾</span>
+                            </div>
+                            <div class="step-content">
+                                <h6>Cosecha</h6>
+                                <p>Día ${data.ciclo.diasGerminacion}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-connector"></div>
+                        
+                        <div class="timeline-step">
+                            <div class="step-marker preservation-step">
+                                <span class="step-icon">⏰</span>
+                            </div>
+                            <div class="step-content">
+                                <h6>Caducidad</h6>
+                                <p>${data.ciclo.diasCaducidad} días</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `}
         </div>
         
         
