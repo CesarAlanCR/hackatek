@@ -79,64 +79,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" href="../recursos/css/general.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body{font-family:Arial,sans-serif; margin:0; background:radial-gradient(circle at 28% 18%,#f0f9ff,#e3f2fd 55%,#e8f5e9 120%); color:#1e2d2f;}
-.container{max-width:1180px; margin:0 auto; padding:24px 28px;}
-/* Hero dinámico */
-.hero-dynamic{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:30px;padding:32px 38px 28px;background:linear-gradient(135deg,#ffffff 0%, #f1f7fb 52%, #f1f8f3 100%);border:1px solid rgba(0,0,0,0.05);border-radius:20px;box-shadow:0 6px 20px rgba(33,56,66,0.08);position:relative;overflow:hidden;}
-.hero-dynamic:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 74% 22%,rgba(25,118,210,.15),transparent 60%);pointer-events:none;}
-.hero-dynamic h1{margin:0 0 10px;font-size:clamp(1.6rem,3.4vw,2.5rem);letter-spacing:.6px;color:#0d3a52;}
-.hero-dynamic .intro{margin:0;max-width:640px;line-height:1.45;font-size:clamp(.95rem,1.15vw,1.05rem);color:#455a64;font-weight:500;}
-.badge-hero{display:inline-flex;align-items:center;gap:6px;background:#1976d2;color:#fff;padding:10px 16px;border-radius:40px;font-size:.75rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;box-shadow:0 4px 14px rgba(25,118,210,.3);}
-/* Progress ring */
-.ring-wrap{display:flex;align-items:center;gap:24px;justify-content:center;}
-.progress-ring{width:120px;height:120px;position:relative;}
-.progress-ring svg{transform:rotate(-90deg);}
-.progress-ring .pr-bg{stroke:#e0e7ea;stroke-width:10;fill:none;}
-.progress-ring .pr-val{stroke:url(#gradFrio);stroke-width:10;fill:none;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.25,1);}
-.progress-ring .center-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#0d3a52;letter-spacing:.5px;}
-.panel{border:1px solid #d4dadc; padding:20px 22px; border-radius:14px; margin-bottom:26px; background:#ffffff; box-shadow:0 2px 4px rgba(0,0,0,0.05);} 
-.panel h2{margin-top:0; font-size:20px;}
-label{display:block; margin-top:14px; font-weight:600; font-size:14px;}
-select,input[type=date]{padding:9px 12px; width:300px; border:1px solid #b7c3c7; border-radius:6px; font-size:14px; background:#fff;}
-button, .btn{margin-top:18px; padding:10px 22px; background:#00695c; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; letter-spacing:.4px; text-decoration:none; display:inline-block;}
-button:hover,.btn:hover{background:#004d40;}
-.btn-secondary{background:#455a64;}
-/* Métricas estilo tarjetas */
-.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:4px 0 4px;}
-.metric-card{position:relative;background:linear-gradient(180deg,#ffffff,#f3f8fa);border:1px solid rgba(25,118,210,0.10);border-radius:14px;padding:14px 16px 12px;box-shadow:0 4px 14px rgba(33,56,66,.08);overflow:hidden;isolation:isolate;transform:translateY(14px) scale(.96);opacity:0;transition:.55s cubic-bezier(.2,.8,.25,1);}
-.metric-card.active{transform:translateY(0) scale(1);opacity:1;box-shadow:0 10px 30px rgba(33,56,66,.18);}
-.metric-card h3{margin:0 0 6px;font-size:.82rem;letter-spacing:.5px;color:#0d3a52;font-weight:700;text-transform:uppercase;}
-.metric-card .value{font-size:1.15rem;font-weight:700;color:#103b60;}
-.metric-card small{display:block;margin-top:2px;font-size:.65rem;color:#546e7a;letter-spacing:.5px;}
-.metric-card.window{background:linear-gradient(135deg,#fff7e6,#ffeec8);border-color:#ffcc80;}
-.metric-card.shelf{background:linear-gradient(135deg,#e3f2fd,#ffffff);border-color:#90caf9;}
-.metric-card.cold-ok{background:linear-gradient(135deg,#e8f5e9,#ffffff);border-color:#a5d6a7;}
-.metric-card.cold-mid{background:linear-gradient(135deg,#fff9e1,#fff3cd);border-color:#ffe082;}
-.metric-card.cold-low{background:linear-gradient(135deg,#fde0e0,#ffffff);border-color:#ff8a80;}
-.alerta{background:#fff4e5; padding:10px 12px; border-left:4px solid #ff9800; margin:6px 0; border-radius:4px; font-size:13px;}
-.ok{background:#e6f8ed; padding:10px 12px; border-left:4px solid #2e7d32; margin:6px 0; border-radius:4px; font-size:13px;}
-.info{background:#e3f2fd; padding:10px 12px; border-left:4px solid #1976d2; margin:6px 0; border-radius:4px; font-size:13px;}
-.chart-wrapper{display:flex; flex-wrap:wrap; gap:34px;}
-.chart-box{flex:1 1 380px; min-width:320px; background:#f9fbfc; padding:18px; border-radius:14px; border:1px solid #dbe3e6; position:relative;}
-.chart-box h4{margin:0 0 12px; font-size:15px; font-weight:600; letter-spacing:.4px;}
-.explicacion{font-size:12.5px; color:#455a64; margin-top:10px;}
-.progress-wrap{background:#eceff1; border-radius:8px; overflow:hidden; height:30px; position:relative;}
-.progress-bar{height:100%; background:linear-gradient(90deg,#1565c0,#42a5f5); width:0%; transition:width 1s;} 
-.progress-label{position:absolute; top:0; left:50%; transform:translateX(-50%); font-size:13px; font-weight:600; color:#073042; line-height:30px;}
-.badge{display:inline-block; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; letter-spacing:.3px;}
-.b-riesgo-alto{background:#d32f2f; color:#fff;}
-.b-riesgo-medio{background:#f9a825; color:#212121;}
-.b-riesgo-bajo{background:#2e7d32; color:#fff;}
-.timeline{display:flex; align-items:center; gap:10px; margin:10px 0 4px; flex-wrap:wrap;}
-.t-step{background:#ffffff; border:1px solid #b0bec5; padding:10px 12px; border-radius:10px; min-width:160px; position:relative;}
-.t-step h5{margin:0 0 6px; font-size:13px; font-weight:700; letter-spacing:.4px; color:#37474f;}
-.t-step p{margin:0; font-size:12.5px; color:#455a64;}
-.connector{flex:1; height:4px; background:linear-gradient(90deg,#b0bec5,#90a4ae); border-radius:2px; min-width:40px; position:relative;}
-.ventana-box{background:#fff3e0; border:1px solid #ffcc80;}
-.anaquel-box{background:#e1f5fe; border:1px solid #81d4fa;}
-.help-toggle{cursor:pointer; font-size:12.5px; color:#1565c0; text-decoration:underline; margin-top:6px;}
-#ayudaConceptos{display:none; background:#ffffff; border:1px dashed #90a4ae; padding:12px 14px; border-radius:10px; margin-top:10px; font-size:12.5px;}
-@media (max-width:680px){.chart-box{min-width:100%;}.timeline{flex-direction:column;}.connector{display:none;}}
+/* Unificación con paleta oscura del index */
+body{margin:0;color:var(--text-primary);} /* fondo y fuente ya definidos en general.css */
+.container{max-width:1180px;margin:0 auto;padding:24px 28px;}
+.hero-dynamic{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:30px;padding:42px 50px 38px;background:linear-gradient(135deg,var(--bg-card) 0%, var(--bg-secondary) 100%);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.hero-dynamic:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 70% 28%,rgba(124,179,66,0.18),transparent 65%);pointer-events:none;}
+.hero-dynamic h1{margin:0 0 14px;font-size:clamp(1.8rem,3.6vw,2.8rem);letter-spacing:-1px;background:linear-gradient(135deg,var(--accent) 0%, var(--green-2) 85%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:800;line-height:1.15;}
+.hero-dynamic .intro{margin:0;max-width:640px;line-height:1.55;font-size:clamp(.95rem,1.08vw,1.05rem);color:var(--text-secondary);font-weight:500;}
+.badge-hero{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:10px 18px;border-radius:40px;font-size:.7rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;box-shadow:var(--shadow-glow);}
+.panel{border:1px solid var(--border);padding:22px 24px;border-radius:var(--radius-lg);margin-bottom:30px;background:var(--bg-card);box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.panel h2{margin-top:0;font-size:1.15rem;letter-spacing:.5px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+label{display:block;margin-top:14px;font-weight:600;font-size:13px;color:var(--text-secondary);letter-spacing:.4px;}
+select,input[type=date]{padding:10px 12px;width:300px;max-width:100%;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg-secondary);color:var(--text-primary);outline:none;transition:var(--transition-fast);}
+select:focus,input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(102,187,106,0.15);}
+/* Métricas oscuras alineadas al index */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;margin:6px 0 6px;}
+.metric-card{position:relative;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px 14px;box-shadow:var(--shadow);overflow:hidden;isolation:isolate;transform:translateY(14px) scale(.96);opacity:0;transition:.6s cubic-bezier(.2,.8,.25,1);}
+.metric-card.active{transform:translateY(0) scale(1);opacity:1;box-shadow:var(--shadow-glow);}
+.metric-card:before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--green-3),var(--accent));opacity:.65;}
+.metric-card h3{margin:0 0 6px;font-size:.7rem;letter-spacing:.55px;background:linear-gradient(120deg,var(--accent) 0%,var(--green-2) 90%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:800;text-transform:uppercase;}
+.metric-card .value{font-size:1.05rem;font-weight:700;color:var(--accent);letter-spacing:.5px;}
+.metric-card small{display:block;margin-top:4px;font-size:.6rem;color:var(--text-muted);letter-spacing:.5px;}
+.metric-card.window{background:linear-gradient(145deg,var(--bg-card-hover) 0%, rgba(255,200,124,0.07) 100%);}
+.metric-card.shelf{background:linear-gradient(145deg,var(--bg-card-hover) 0%, rgba(144,202,249,0.10) 100%);}
+/* Alertas adaptadas */
+.alerta{background:rgba(255,152,0,0.10);padding:10px 12px;border-left:4px solid #ff9800;margin:6px 0;border-radius:6px;font-size:12px;color:var(--text-secondary);}
+.ok{background:rgba(46,125,50,0.15);padding:10px 12px;border-left:4px solid var(--accent);margin:6px 0;border-radius:6px;font-size:12px;color:var(--text-secondary);}
+.info{background:rgba(25,118,210,0.15);padding:10px 12px;border-left:4px solid #1976d2;margin:6px 0;border-radius:6px;font-size:12px;color:var(--text-secondary);}
+/* Timeline clara → oscura */
+.timeline{display:flex;align-items:center;gap:12px;margin:12px 0 6px;flex-wrap:wrap;}
+.t-step{background:var(--bg-card-hover);border:1px solid var(--border);padding:12px 14px;border-radius:12px;min-width:160px;position:relative;box-shadow:0 4px 14px rgba(0,0,0,0.25);}
+.t-step h5{margin:0 0 6px;font-size:.68rem;font-weight:700;letter-spacing:.5px;color:var(--accent);}
+.t-step p{margin:0;font-size:.7rem;color:var(--text-secondary);}
+.connector{flex:1;height:4px;background:linear-gradient(90deg,var(--green-3),var(--accent));border-radius:2px;min-width:40px;position:relative;opacity:.55;}
+.ventana-box{background:linear-gradient(135deg,var(--bg-card-hover),rgba(255,200,124,0.08));}
+.anaquel-box{background:linear-gradient(135deg,var(--bg-card-hover),rgba(144,202,249,0.12));}
+.help-toggle{cursor:pointer;font-size:.7rem;color:var(--accent);text-decoration:underline;margin-top:6px;}
+#ayudaConceptos{display:none;background:var(--bg-card-hover);border:1px dashed var(--border);padding:14px 16px;border-radius:12px;margin-top:12px;font-size:.68rem;color:var(--text-secondary);}
+/* Charts adaptados */
+.chart-wrapper{display:flex;flex-wrap:wrap;gap:34px;}
+.chart-box{flex:1 1 380px;min-width:320px;background:var(--bg-card-hover);padding:20px;border-radius:16px;border:1px solid var(--border);position:relative;box-shadow:var(--shadow);}
+.chart-box h4{margin:0 0 12px;font-size:.78rem;font-weight:700;letter-spacing:.45px;color:var(--accent);}
+.explicacion{font-size:.66rem;color:var(--text-secondary);margin-top:10px;}
+.progress-wrap{background:rgba(255,255,255,0.06);border-radius:10px;overflow:hidden;height:30px;position:relative;}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--green-4),var(--accent));width:0%;transition:width 1s;}
+.progress-label{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:.65rem;font-weight:700;color:var(--text-primary);line-height:30px;letter-spacing:.4px;}
+.badge{display:inline-block;padding:5px 12px;border-radius:24px;font-size:.55rem;font-weight:700;letter-spacing:.4px;background:var(--green-4);color:#fff;}
+/* Toggle avanzado botón (reutiliza estilos .btn) */
+#toggleDetallado{margin-top:18px;}
+#toggleDetallado.btn-primary{box-shadow:0 4px 16px rgba(124,179,66,0.35);}
+#toggleDetallado.btn-primary:hover{box-shadow:var(--shadow-glow);}
+/* Avanzados (ya añadidos antes) */
+.detalles-avanzados-wrapper{margin-top:28px;display:flex;flex-direction:column;gap:28px;}
+.detalles-avanzados-wrapper .panel{background:linear-gradient(135deg,var(--bg-card) 0%, var(--bg-secondary) 100%);border:1px solid var(--border);color:var(--text-primary);box-shadow:var(--shadow);}
+.detalles-avanzados-wrapper .panel h2, .detalles-avanzados-wrapper .panel h3, .detalles-avanzados-wrapper .panel h4{background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.4px;}
+.fade-seq{opacity:0;transform:translateY(18px);transition:.6s cubic-bezier(.2,.8,.25,1);}
+.fade-seq.active{opacity:1;transform:translateY(0);}
+.detalle-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);padding:16px 18px;border-radius:var(--radius);position:relative;overflow:hidden;transition:var(--transition-fast);}
+.detalle-card:before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(124,179,66,0.14),transparent 70%);opacity:0;transition:opacity .4s ease;}
+.detalle-card:hover:before{opacity:1;}
+.detalle-card:hover{border-color:var(--border-hover);transform:translateY(-4px);}
+.detalle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;}
+.detalle-meta{font-size:.6rem;color:var(--text-muted);margin-top:6px;}
+.detalle-valor{font-weight:600;color:var(--accent);font-size:.8rem;}
+.badge-frio{display:inline-block;padding:6px 12px;border-radius:24px;font-size:.55rem;font-weight:700;letter-spacing:.6px;background:var(--green-4);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);}
+.timeline-modern{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;}
+.timeline-modern .t-item{flex:1 1 160px;min-width:160px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;position:relative;overflow:hidden;}
+.visual-charts-flex{display:flex;flex-wrap:wrap;gap:24px;margin-top:10px;}
+.visual-box{flex:1 1 300px;min-width:260px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;position:relative;overflow:hidden;}
+.visual-box h4{margin:0 0 10px;font-size:.75rem;letter-spacing:.5px;color:var(--accent);font-weight:700;}
+.visual-box:before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,var(--green-4),var(--accent));opacity:.6;}
+.visual-progress{height:24px;background:rgba(255,255,255,.06);border-radius:14px;overflow:hidden;position:relative;margin-top:4px;}
+.visual-progress .bar{height:100%;width:0;background:linear-gradient(90deg,var(--green-4),var(--accent));transition:width .9s cubic-bezier(.2,.8,.25,1);}
+.visual-progress .label{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:.55rem;font-weight:600;color:var(--text-primary);line-height:24px;}
+@media (max-width:760px){.visual-box{min-width:100%;}.detalle-grid{grid-template-columns:1fr;}.hero-dynamic{padding:30px 22px;}}
 </style>
 </head>
 <body>
@@ -215,28 +231,27 @@ button:hover,.btn:hover{background:#004d40;}
                 <strong>Alerta destacada:</strong> <?= htmlspecialchars($rAgri['alerta_clave']) ?>
             <?php endif; ?>
         </div>
-    <button type="button" id="toggleDetallado" style="margin-top:16px;background:#1976d2;">Ver detalles avanzados</button>
+    <button type="button" id="toggleDetallado" class="btn btn-primary" style="margin-top:16px;">Ver detalles avanzados</button>
         <p style="font-size:12px;color:#54666b;margin-top:6px;">Esta vista muestra sólo lo que necesitas para decidir logística y monitoreo diario.</p>
     <?php else: ?>
         <p>No se construyó el resumen esencial.</p>
     <?php endif; ?>
 </div>
 <div id="bloqueCompleto" style="display:none;">
-<div class="panel">
+<div class="panel fade-seq">
     <h2>Resumen</h2>
-    <div class="grid">
-        <div class="dato"><strong><?= htmlspecialchars($resultado['nombre_variedad']) ?></strong><span>Variedad</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['fecha_floracion']) ?></strong><span>Fecha Floración</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['dias_flor_cosecha']) ?></strong><span>Días Flor-Cosecha</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['fecha_cosecha_estimada']) ?></strong><span>Fecha Estimada</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['ventana_inicio']) ?></strong><span>Ventana Inicio</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['ventana_fin']) ?></strong><span>Ventana Fin</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['vida_anaquel_dias']) ?></strong><span>Vida Anaquel (días)</span></div>
-        <div class="dato"><strong><?= htmlspecialchars($resultado['fecha_limite_anaquel']) ?></strong><span>Límite Anaquel</span></div>
-        <div class="dato"><strong><?= htmlspecialchars((string)$resultado['ajuste_aplicado_dias']) ?></strong><span>Ajuste por frío</span></div>
-        <div class="dato"><strong><?= htmlspecialchars((string)$resultado['horas_frio_acumuladas']) ?></strong><span>Horas Frío Acum.</span></div>
-        <div class="dato"><strong><?= htmlspecialchars((string)$resultado['horas_frio_requeridas']) ?></strong><span>Horas Frío Req.</span></div>
-    <div class="dato"><strong><?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%</strong><span>Avance frío</span></div>
+    <div class="detalle-grid">
+        <div class="detalle-card"><strong>Variedad</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['nombre_variedad']) ?></div><div class="detalle-meta">Identificador</div></div>
+        <div class="detalle-card"><strong>Floración</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['fecha_floracion']) ?></div><div class="detalle-meta">Fecha base</div></div>
+        <div class="detalle-card"><strong>Días Flor-Cosecha</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['dias_flor_cosecha']) ?></div><div class="detalle-meta">Duración ciclo</div></div>
+        <div class="detalle-card"><strong>Cosecha estimada</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['fecha_cosecha_estimada']) ?></div><div class="detalle-meta">Objetivo temporal</div></div>
+        <div class="detalle-card"><strong>Ventana Inicio</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['ventana_inicio']) ?></div><div class="detalle-meta">Inicio recomend.</div></div>
+        <div class="detalle-card"><strong>Ventana Fin</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['ventana_fin']) ?></div><div class="detalle-meta">Fin recomend.</div></div>
+        <div class="detalle-card"><strong>Vida anaquel</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['vida_anaquel_dias']) ?> días</div><div class="detalle-meta">Conservación</div></div>
+        <div class="detalle-card"><strong>Límite anaquel</strong><div class="detalle-valor"><?= htmlspecialchars($resultado['fecha_limite_anaquel']) ?></div><div class="detalle-meta">Fecha límite</div></div>
+        <div class="detalle-card"><strong>Ajuste frío</strong><div class="detalle-valor"><?= htmlspecialchars((string)$resultado['ajuste_aplicado_dias']) ?> días</div><div class="detalle-meta">Días añadidos</div></div>
+        <div class="detalle-card"><strong>Horas frío</strong><div class="detalle-valor"><?= htmlspecialchars((string)$resultado['horas_frio_acumuladas']) ?> / <?= htmlspecialchars((string)$resultado['horas_frio_requeridas']) ?></div><div class="detalle-meta">Acum / Req</div></div>
+        <div class="detalle-card"><strong>Avance frío</strong><div class="detalle-valor"><?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%</div><div class="detalle-meta">Progreso</div></div>
     </div>
     <?php
         // Interpretación amigable
@@ -244,10 +259,10 @@ button:hover,.btn:hover{background:#004d40;}
         $ajuste = (int)$resultado['ajuste_aplicado_dias'];
         if ($porc < 80) { $estadoFrio = 'b-riesgo-alto'; $textoFrio = 'El frío acumulado es bajo (' . $porc . '%). Se aplicó un ajuste de +' . $ajuste . ' días para evitar cosecha prematura.'; }
         elseif ($porc < 90) { $estadoFrio = 'b-riesgo-medio'; $textoFrio = 'El frío va cerca del objetivo (' . $porc . '%). Ajuste ligero de +' . $ajuste . ' días.'; }
-        else { $estadoFrio = 'b-riesgo-bajo'; $textoFrio = 'Objetivo de frío prácticamente cumplido (' . $porc . '%). Fecha estimada estable.'; }
+    else { $estadoFrio = 'b-riesgo-bajo'; $textoFrio = 'Objetivo de frío prácticamente cumplido (' . $porc . '%). Fecha estimada estable.'; }
     ?>
     <div class="info"><span class="badge <?= $estadoFrio ?>">Frío <?= htmlspecialchars((string)$resultado['porcentaje_frio']) ?>%</span> <?= htmlspecialchars($textoFrio) ?></div>
-    <p style="margin-top:10px;font-size:13px;color:#37474f;">Las horas frío se contabilizan (0°C–7°C). Si no había datos previos se estimó un bloque reciente (≈30 días). Un menor porcentaje retrasa la fecha objetivo para no comprometer calidad.</p>
+    <p style="margin-top:10px;font-size:.7rem;color:var(--text-secondary);">Las horas frío (0°C–7°C) se estimaron sobre últimos datos disponibles. Déficit térmico retrasa fecha para proteger calidad.</p>
     <h3>Alertas</h3>
     <?php if(count($resultado['alertas'])===0): ?>
         <div class="ok">Sin alertas relevantes.</div>
@@ -257,24 +272,24 @@ button:hover,.btn:hover{background:#004d40;}
 </div>
 <div class="panel">
     <h2>Desglose Detallado</h2>
-    <p style="font-size:13px;color:#455a64;">Cada métrica incluye una explicación corta y otra amplia para reforzar comprensión incluso sin experiencia técnica o agrícola.</p>
-        <p style="font-size:12px;color:#37474f;background:#f1f8ff;border:1px solid #cfd8dc;padding:10px 12px;border-radius:10px;line-height:1.35;">
+    <p style="font-size:.7rem;color:var(--text-secondary);">Cada métrica incluye explicación corta y extensa para comprensión sin experiencia técnica.</p>
+        <p style="font-size:.65rem;color:var(--text-secondary);background:var(--bg-card-hover);border:1px solid var(--border);padding:10px 12px;border-radius:10px;line-height:1.35;">
             <strong>Metodología Prob. Éxito (versión heurística 0.2):</strong> Partimos del % de horas frío cumplidas comparado con lo requerido, aplicamos penalización por días de ajuste (déficit térmico) y añadimos bonificación incremental si el cumplimiento es alto (≥95% sin ajuste). Ahora se incorpora un factor adicional de <em>chill portions</em> estimadas (heurística): rangos mayores de porciones aportan bonificación (ej. ≥40 → +4 pts). Futuras versiones integrarán: riesgo de heladas severas, anomalías de radiación, estrés hídrico y validación fenológica visual. <strong>Nota:</strong> Esta probabilidad no garantiza rendimiento, sino la consistencia temporal y de calidad prevista bajo supuestos estándar de manejo.
         </p>
     <?php if(isset($resultado['detalles']) && is_array($resultado['detalles'])): ?>
         <?php foreach($resultado['detalles'] as $clave => $info): ?>
-            <div style="margin-bottom:18px;padding:14px 16px;border:1px solid #d0d7da;border-radius:10px;background:#fcfdfd;">
-                <h3 style="margin:0 0 8px;font-size:15px;letter-spacing:.4px;">🔍 <?= htmlspecialchars($info['titulo']) ?></h3>
+            <div class="detalle-card" style="margin-bottom:14px;">
+                <h3 style="margin:0 0 6px;font-size:.75rem;letter-spacing:.4px;background:linear-gradient(90deg,var(--accent),var(--green-2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🔍 <?= htmlspecialchars($info['titulo']) ?></h3>
                 <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;">
-                    <div style="min-width:180px;font-size:13px;line-height:1.3;">
-                        <strong>Valor:</strong> <span style="color:#1a3d46;"><?= htmlspecialchars(is_scalar($info['valor']) ? (string)$info['valor'] : (is_array($info['valor'])? json_encode($info['valor']) : '')) ?></span>
+                    <div style="min-width:160px;font-size:.65rem;line-height:1.3;">
+                        <strong>Valor:</strong> <span style="color:var(--green-2);"><?= htmlspecialchars(is_scalar($info['valor']) ? (string)$info['valor'] : (is_array($info['valor'])? json_encode($info['valor']) : '')) ?></span>
                     </div>
-                    <div style="flex:1;min-width:240px;font-size:12.5px;color:#2f4d56;">
+                    <div style="flex:1;min-width:220px;font-size:.62rem;color:var(--text-secondary);">
                         <strong>Explicación corta:</strong><br/>
                         <?= htmlspecialchars($info['explicacion_corta']) ?><br/>
                         <strong style="display:block;margin-top:6px;">Explicación extensa:</strong>
                         <span style="display:block;margin-top:2px;"><?= htmlspecialchars($info['explicacion_extensa']) ?></span>
-                        <span style="display:block;margin-top:6px;color:#455a64;font-style:italic;">Resumen: <?= htmlspecialchars($info['explicacion_corta']) ?>.</span>
+                        <span style="display:block;margin-top:6px;color:var(--text-muted);font-style:italic;">Resumen: <?= htmlspecialchars($info['explicacion_corta']) ?>.</span>
                     </div>
                 </div>
             </div>
@@ -283,12 +298,12 @@ button:hover,.btn:hover{background:#004d40;}
         <p>No hay detalles disponibles.</p>
     <?php endif; ?>
     <?php if(isset($resultado['debug_calc'])): $dbg = $resultado['debug_calc']; ?>
-        <div style="margin-top:12px;padding:12px;border:1px dashed #b0bec5;border-radius:8px;background:#fff;">
-            <h4>Depuración cálculo probabilidad</h4>
-            <pre style="font-size:13px;color:#263238;white-space:pre-wrap;"><?= htmlspecialchars(json_encode($dbg, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)) ?></pre>
+        <div style="margin-top:12px;padding:12px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-card-hover);">
+            <h4 style="margin:0 0 6px;font-size:.7rem;color:var(--accent);">Depuración cálculo probabilidad</h4>
+            <pre style="font-size:.6rem;color:var(--text-secondary);white-space:pre-wrap;"><?= htmlspecialchars(json_encode($dbg, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)) ?></pre>
         </div>
     <?php endif; ?>
-    <p style="font-size:12px;color:#607d8b;margin-top:10px;">Fin del desglose. Puedes volver arriba para cambiar variedad o fecha y recalcular el conjunto completo de métricas y sus explicaciones repetitivas.</p>
+    <p style="font-size:.6rem;color:var(--text-muted);margin-top:10px;">Fin del desglose. Cambia variedad o fecha para recomputar métricas.</p>
 </div>
 <div class="panel">
     <h2>Visualizaciones simplificadas</h2>
